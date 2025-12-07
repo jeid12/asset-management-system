@@ -91,10 +91,11 @@ export default function LoginPage() {
     setError("");
     setResending(true);
     try {
-      // Re-call the login endpoint to regenerate/send a new OTP.
-      const res = await apiClient.post("/auth/login", { emailOrUsername, password });
+      // Call the dedicated resend-otp endpoint
+      const res = await apiClient.post("/auth/resend-otp", { emailOrUsername, password });
       if (res.status === 200) {
         setOtpSentAt(Date.now());
+        setVerificationCode(""); // Clear the old code
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to resend OTP");

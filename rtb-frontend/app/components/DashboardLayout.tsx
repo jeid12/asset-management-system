@@ -1,11 +1,23 @@
 // app/components/DashboardLayout.tsx
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaSignOutAlt, FaHome } from "react-icons/fa";
-import { logout } from "@/app/utils/auth";
+import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome } from "react-icons/fa";
+import SettingsModal from "../dashboard/SettingsModal";
+import apiClient from "@/app/utils/api";
+
+interface User {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  gender?: string;
+  profilePicture?: string;
+}
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -13,6 +25,25 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const [showSettings, setShowSettings] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Fetch current user profile
+    const fetchUser = async () => {
+      try {
+        const response = await apiClient.get("/profile/me");
+        setCurrentUser(response.data.user);
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+  };
 
   const navigationItems = [
     { label: "Dashboard", href: "/dashboard", icon: FaHome },
@@ -86,7 +117,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           ))}
         </nav>
 
-        {/* Logout Button at Bottom */}
+        {/* Settings Button at Bottom */}
         <div
           style={{
             position: "absolute",
@@ -97,20 +128,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         >
           <button
-            onClick={() => {
-              if (confirm("Are you sure you want to logout?")) {
-                logout();
-              }
-            }}
+            onClick={() => setShowSettings(true)}
             style={{
               width: "100%",
               display: "flex",
               alignItems: "center",
               gap: "0.75rem",
               padding: "0.75rem 1rem",
-              backgroundColor: "rgba(239, 68, 68, 0.1)",
-              color: "#fca5a5",
-              border: "1px solid rgba(239, 68, 68, 0.3)",
+              backgroundColor: "rgba(96, 165, 250, 0.1)",
+              color: "#60a5fa",
+              border: "1px solid rgba(96, 165, 250, 0.3)",
               borderRadius: "8px",
               cursor: "pointer",
               fontSize: "0.95rem",
@@ -118,14 +145,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               transition: "all 0.3s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+              e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.2)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+              e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.1)";
             }}
           >
-            <FaSignOutAlt size="1.25rem" />
-            <span>Logout</span>
+            <FaCog size="1.25rem" />
+            <span>Settings</span>
           </button>
         </div>
       </aside>
@@ -134,6 +161,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <main style={{ marginLeft: "250px", width: "calc(100% - 250px)", padding: "2rem" }}>
         {children}
       </main>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={currentUser}
+        onUserUpdate={handleUserUpdate}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // src/routes/auth.routes.ts
 import { Router } from "express";
-import { register, login, forgotPassword, resetPassword, logout } from "../controllers/auth.controller";
+import { register, login, verifyOtp, resendOtp, forgotPassword, resetPassword, logout } from "../controllers/auth.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -79,8 +79,8 @@ router.post("/register", register);
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Login user
- *     description: Authenticate user with email or username and password
+ *     summary: Login user (Step 1 - Send OTP)
+ *     description: Authenticate user with email or username and password, then send OTP to their email
  *     requestBody:
  *       required: true
  *       content:
@@ -89,19 +89,18 @@ router.post("/register", register);
  *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: OTP sent successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 otpSent:
+ *                   type: boolean
  *       401:
  *         description: Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: User not found
  *         content:
  *           application/json:
  *             schema:
@@ -114,6 +113,88 @@ router.post("/register", register);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", login);
+
+/**
+ * @swagger
+ * /api/auth/verify-otp:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Verify OTP and complete login
+ *     description: Verify the OTP sent to user's email and return JWT token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               emailOrUsername:
+ *                 type: string
+ *                 example: 'user@example.com or username123'
+ *               otp:
+ *                 type: string
+ *                 example: '123456'
+ *             required:
+ *               - emailOrUsername
+ *               - otp
+ *     responses:
+ *       200:
+ *         description: OTP verified and login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       401:
+ *         description: Invalid or expired OTP
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/verify-otp", verifyOtp);
+
+/**
+ * @swagger
+ * /api/auth/resend-otp:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Resend OTP
+ *     description: Resend a new OTP to user's email (useful when previous OTP expired)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: New OTP sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OtpSentResponse'
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/resend-otp", resendOtp);
 
 /**
  * @swagger

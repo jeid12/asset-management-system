@@ -97,8 +97,8 @@ const DashboardPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch users count by role
-        const usersRes = await apiClient.get("/profile/me");
+        // Fetch current user profile
+        const profileRes = await apiClient.get("/profile/me");
         // In a real scenario, you'd fetch actual counts from the backend
         // For now, setting mock data
         setStaffCount(12);

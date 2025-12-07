@@ -31,12 +31,12 @@ POST {{baseUrl}}/api/auth/register HTTP/1.1
 Content-Type: application/json
 
 {
-  "fullName": "Jane Smith",
-  "username": "janesmith",
-  "email": "jane@example.com",
+  "fullName": "NIYOKWIZERA JEAN D AMOUR",
+  "username": "jeid",
+  "email": "jeid",
   "password": "password123",
-  "phoneNumber": "0987654321",
-  "gender": "Female"
+  "phoneNumber": "0784422138",
+  "gender": "Male"
 }
 
 ### 4. Login with Email

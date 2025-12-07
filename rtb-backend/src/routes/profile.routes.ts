@@ -6,6 +6,7 @@ import {
   changePassword,
   uploadProfilePicture,
   deleteProfilePicture,
+  deleteProfile,
 } from "../controllers/profile.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { upload } from "../middlewares/upload.middleware";
@@ -51,6 +52,41 @@ router.use(authenticate);
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", getProfile);
+
+/**
+ * @swagger
+ * /api/profile/me:
+ *   get:
+ *     tags:
+ *       - Profile
+ *     summary: Get current user profile (alias)
+ *     description: Retrieve the authenticated user's profile information (alias for /api/profile)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/me", getProfile);
 
 /**
  * @swagger
@@ -246,5 +282,46 @@ router.post("/picture", upload.single("profilePicture"), uploadProfilePicture);
  *               $ref: '#/components/schemas/Error'
  */
 router.delete("/picture", deleteProfilePicture);
+
+/**
+ * @swagger
+ * /api/profile:
+ *   delete:
+ *     tags:
+ *       - Profile
+ *     summary: Delete user account
+ *     description: Permanently delete the authenticated user's account and all associated data
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete("/", deleteProfile);
 
 export default router;

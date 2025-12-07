@@ -9,6 +9,7 @@ import { specs } from "./config/swagger";
 import { AppDataSource } from "./data-source";
 import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
+import userRoutes from "./routes/user.routes";
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +59,7 @@ app.get("/", (_req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/users", userRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

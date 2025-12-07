@@ -6,9 +6,10 @@ import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, VerifyOtpDt
 import { validateDto } from "../utils/validator.util";
 import { hashPassword, comparePassword } from "../utils/password.util";
 import { generateToken, generateResetToken, verifyToken } from "../utils/jwt.util";
-import { sendWelcomeEmail, sendResetPasswordEmail } from "../utils/email.util";
+import { sendWelcomeEmail, sendResetPasswordEmail, sendOtpEmail } from "../utils/email.util";
 import { tokenBlacklist } from "../utils/tokenBlacklist.util";
 import { AuthRequest } from "../middlewares/auth.middleware";
+import { createOtpForUser, verifyOtpForUser } from "../utils/otp.util";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -110,14 +111,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
-    // Credentials valid — create OTP, send via email and wait for verification
+
+    // Generate and send OTP
     try {
-      const otp = await createOtpForUser(user.id, 5);
+      const otp = await createOtpForUser(user.id, 5); // 5 minutes expiry
       await sendOtpEmail(user.email, otp.code);
-      res.status(200).json({ message: "OTP sent to registered email. Please verify to complete login." });
+      
+      res.status(200).json({
+        message: "OTP sent to your email. Please verify to complete login.",
+        otpSent: true,
+      });
     } catch (emailError) {
-      console.error("Failed to create/send OTP:", emailError);
-      res.status(500).json({ message: "Failed to send OTP" });
+      console.error("Failed to send OTP email:", emailError);
+      res.status(500).json({ message: "Failed to send OTP. Please try again." });
     }
   } catch (error) {
     console.error("Login error:", error);
@@ -125,16 +131,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
+export const resendOtp = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { isValid, errors } = await validateDto(VerifyOtpDto, req.body);
+    // Validate request body (using LoginDto since it has the same fields)
+    const { isValid, errors } = await validateDto(LoginDto, req.body);
     if (!isValid) {
       res.status(400).json({ message: "Validation failed", errors });
       return;
     }
 
-    const { emailOrUsername, otp } = req.body;
+    const { emailOrUsername, password } = req.body;
 
+    // Find user by email or username
     const user = await userRepository.findOne({
       where: [{ email: emailOrUsername }, { username: emailOrUsername }],
     });
@@ -144,31 +152,28 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const ok = await verifyOtpForUser(user.id, otp);
-    if (!ok) {
-      res.status(401).json({ message: "Invalid or expired OTP" });
+    // Verify password
+    const isPasswordValid = await comparePassword(password, user.password);
+    if (!isPasswordValid) {
+      res.status(401).json({ message: "Invalid credentials" });
       return;
     }
 
-    // OTP valid — issue token and return success
-    const token = generateToken({ id: user.id, email: user.email, role: user.role });
-
-    res.status(200).json({
-      message: "Login verified",
-      token,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        username: user.username,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
-        gender: user.gender,
-        profilePicture: user.profilePicture,
-      },
-    });
+    // Generate and send new OTP
+    try {
+      const otp = await createOtpForUser(user.id, 5); // 5 minutes expiry
+      await sendOtpEmail(user.email, otp.code);
+      
+      res.status(200).json({
+        message: "New OTP sent to your email. Please verify to complete login.",
+        otpSent: true,
+      });
+    } catch (emailError) {
+      console.error("Failed to send OTP email:", emailError);
+      res.status(500).json({ message: "Failed to send OTP. Please try again." });
+    }
   } catch (error) {
-    console.error("Verify OTP error:", error);
+    console.error("Resend OTP error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -247,6 +252,62 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     console.error("Reset password error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Validate request body
+    const { isValid, errors } = await validateDto(VerifyOtpDto, req.body);
+    if (!isValid) {
+      res.status(400).json({ message: "Validation failed", errors });
+      return;
+    }
+
+    const { emailOrUsername, otp } = req.body;
+
+    // Find user by email or username
+    const user = await userRepository.findOne({
+      where: [{ email: emailOrUsername }, { username: emailOrUsername }],
+    });
+
+    if (!user) {
+      res.status(401).json({ message: "Invalid request" });
+      return;
+    }
+
+    // Verify OTP
+    const isOtpValid = await verifyOtpForUser(user.id, otp);
+    
+    if (!isOtpValid) {
+      res.status(401).json({ message: "Invalid or expired OTP" });
+      return;
+    }
+
+    // Generate token after successful OTP verification
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        gender: user.gender,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error) {
+    console.error("Verify OTP error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
