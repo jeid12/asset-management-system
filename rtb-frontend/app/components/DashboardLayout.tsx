@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setCurrentUser(updatedUser);
   };
 
-  // Conditionally show Users and Schools links only for admin and rtb-staff
+  // Conditionally show Users and Schools links based on role
   const navigationItems = [
     { label: "Dashboard", href: "/dashboard", icon: FaHome },
     { label: "Devices", href: "/dashboard/devices", icon: FaLaptop },
@@ -54,6 +54,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           { label: "Users", href: "/dashboard/users", icon: FaUsers },
           { label: "Schools", href: "/dashboard/schools", icon: FaSchool }
         ] 
+      : currentUser?.role === "school"
+      ? [
+          { label: "Schools", href: "/dashboard/schools", icon: FaSchool }
+        ]
       : []
     ),
     { label: "Notifications", href: "/dashboard/notifications", icon: FaBell },

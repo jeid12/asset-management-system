@@ -48,8 +48,8 @@ export class CreateSchoolDto {
   address?: string;
 
   @IsOptional()
-  @IsUUID()
-  representativeId?: string;
+  @IsEmail()
+  representativeEmail?: string;
 
   @IsOptional()
   @IsEnum(['Active', 'Inactive'])
@@ -104,8 +104,8 @@ export class UpdateSchoolDto {
   address?: string;
 
   @IsOptional()
-  @IsUUID()
-  representativeId?: string;
+  @IsEmail()
+  representativeEmail?: string;
 
   @IsOptional()
   @IsEnum(['Active', 'Inactive'])

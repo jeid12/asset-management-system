@@ -13,7 +13,7 @@ const userRepository = AppDataSource.getRepository(User);
 /**
  * Get all schools with pagination and filtering (Admin/Staff only)
  */
-export const getSchools = async (req: Request, res: Response): Promise<void> => {
+export const getSchools = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authReq = req as AuthRequest;
     const currentUser = authReq.user;
@@ -96,7 +96,7 @@ export const getSchools = async (req: Request, res: Response): Promise<void> => 
 /**
  * Get school by ID
  */
-export const getSchoolById = async (req: Request, res: Response): Promise<void> => {
+export const getSchoolById = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authReq = req as AuthRequest;
     const currentUser = authReq.user;
@@ -138,7 +138,7 @@ export const getSchoolById = async (req: Request, res: Response): Promise<void> 
 /**
  * Create a single school (Admin/Staff only)
  */
-export const createSchool = async (req: Request, res: Response): Promise<void> => {
+export const createSchool = async (req: Request, res: Response): Promise<Response> => {
   try {
     const createDto = plainToClass(CreateSchoolDto, req.body);
     const errors = await validate(createDto);
@@ -166,16 +166,17 @@ export const createSchool = async (req: Request, res: Response): Promise<void> =
       });
     }
 
-    // If representativeId provided, validate the user
-    if (createDto.representativeId) {
+    // If representativeEmail provided, find and validate the user
+    let representativeId: string | undefined;
+    if (createDto.representativeEmail) {
       const representative = await userRepository.findOne({
-        where: { id: createDto.representativeId }
+        where: { email: createDto.representativeEmail }
       });
 
       if (!representative) {
         return res.status(404).json({
           success: false,
-          message: 'Representative user not found'
+          message: `Representative with email ${createDto.representativeEmail} not found`
         });
       }
 
@@ -185,21 +186,27 @@ export const createSchool = async (req: Request, res: Response): Promise<void> =
           message: 'Representative must have "school" role'
         });
       }
+
+      representativeId = representative.id;
     }
 
-    const school = schoolRepository.create(createDto);
-    await schoolRepository.save(school);
+    const { representativeEmail, ...schoolData } = createDto as any;
+    const school = schoolRepository.create({
+      ...schoolData,
+      representativeId
+    });
+    const savedSchool = await schoolRepository.save(school);
 
     // Fetch with representative details
-    const savedSchool = await schoolRepository.findOne({
-      where: { id: school.id },
+    const schoolWithRelations = await schoolRepository.findOne({
+      where: { id: savedSchool.id },
       relations: ['representative']
     });
 
     return res.status(201).json({
       success: true,
       message: 'School created successfully',
-      data: savedSchool
+      data: schoolWithRelations
     });
   } catch (error) {
     console.error('Create school error:', error);
@@ -213,7 +220,7 @@ export const createSchool = async (req: Request, res: Response): Promise<void> =
 /**
  * Bulk create schools (Admin/Staff only)
  */
-export const bulkCreateSchools = async (req: Request, res: Response): Promise<void> => {
+export const bulkCreateSchools = async (req: Request, res: Response): Promise<Response> => {
   try {
     const bulkDto = plainToClass(BulkCreateSchoolDto, req.body);
     const errors = await validate(bulkDto);
@@ -250,15 +257,16 @@ export const bulkCreateSchools = async (req: Request, res: Response): Promise<vo
         }
 
         // Validate representative if provided
-        if (schoolData.representativeId) {
+        let representativeId: string | undefined;
+        if ((schoolData as any).representativeEmail) {
           const representative = await userRepository.findOne({
-            where: { id: schoolData.representativeId }
+            where: { email: (schoolData as any).representativeEmail }
           });
 
           if (!representative) {
             results.failed.push({
               schoolCode: schoolData.schoolCode,
-              reason: 'Representative user not found'
+              reason: `Representative with email ${(schoolData as any).representativeEmail} not found`
             });
             continue;
           }
@@ -270,9 +278,15 @@ export const bulkCreateSchools = async (req: Request, res: Response): Promise<vo
             });
             continue;
           }
+
+          representativeId = representative.id;
         }
 
-        const school = schoolRepository.create(schoolData);
+        const { representativeEmail, ...schoolDataWithoutEmail } = schoolData as any;
+        const school = schoolRepository.create({
+          ...schoolDataWithoutEmail,
+          representativeId
+        });
         await schoolRepository.save(school);
         results.successful.push(school);
       } catch (error: any) {
@@ -300,7 +314,7 @@ export const bulkCreateSchools = async (req: Request, res: Response): Promise<vo
 /**
  * Update school (Admin/Staff can update all fields, School role can update limited fields)
  */
-export const updateSchool = async (req: Request, res: Response): Promise<void> => {
+export const updateSchool = async (req: Request, res: Response): Promise<Response> => {
   try {
     const authReq = req as AuthRequest;
     const currentUser = authReq.user;
@@ -353,8 +367,9 @@ export const updateSchool = async (req: Request, res: Response): Promise<void> =
       });
     }
 
-    // If representativeId is being updated, validate
-    if (updateDto.representativeId !== undefined) {
+    // If representativeEmail is being updated, validate and get ID
+    let representativeId: string | undefined | null = undefined;
+    if ((updateDto as any).representativeEmail !== undefined) {
       if (currentUser?.role === 'school') {
         return res.status(403).json({
           success: false,
@@ -362,15 +377,15 @@ export const updateSchool = async (req: Request, res: Response): Promise<void> =
         });
       }
 
-      if (updateDto.representativeId) {
+      if ((updateDto as any).representativeEmail) {
         const representative = await userRepository.findOne({
-          where: { id: updateDto.representativeId }
+          where: { email: (updateDto as any).representativeEmail }
         });
 
         if (!representative) {
           return res.status(404).json({
             success: false,
-            message: 'Representative user not found'
+            message: `Representative with email ${(updateDto as any).representativeEmail} not found`
           });
         }
 
@@ -380,10 +395,19 @@ export const updateSchool = async (req: Request, res: Response): Promise<void> =
             message: 'Representative must have "school" role'
           });
         }
+
+        representativeId = representative.id;
+      } else {
+        representativeId = null;
       }
     }
 
-    Object.assign(school, updateDto);
+    const { representativeEmail, ...updateData } = updateDto as any;
+    if (representativeId !== undefined) {
+      Object.assign(school, updateData, { representativeId });
+    } else {
+      Object.assign(school, updateData);
+    }
     await schoolRepository.save(school);
 
     const updatedSchool = await schoolRepository.findOne({
@@ -408,7 +432,7 @@ export const updateSchool = async (req: Request, res: Response): Promise<void> =
 /**
  * Delete school (Admin/Staff only)
  */
-export const deleteSchool = async (req: Request, res: Response): Promise<void> => {
+export const deleteSchool = async (req: Request, res: Response): Promise<Response> => {
   try {
     const { schoolId } = req.params;
 
@@ -441,7 +465,7 @@ export const deleteSchool = async (req: Request, res: Response): Promise<void> =
 /**
  * Get school statistics (Admin/Staff only)
  */
-export const getSchoolStats = async (_req: Request, res: Response): Promise<void> => {
+export const getSchoolStats = async (_req: Request, res: Response): Promise<Response> => {
   try {
     const totalSchools = await schoolRepository.count();
     const activeSchools = await schoolRepository.count({ where: { status: 'Active' } });
@@ -459,17 +483,17 @@ export const getSchoolStats = async (_req: Request, res: Response): Promise<void
       success: true,
       data: {
         total: totalSchools,
-        active: activeSchools,
-        inactive: inactiveSchools,
         byCategory: {
           TSS: tssCount,
           VTC: vtcCount,
           Other: otherCount
         },
-        representatives: {
-          assigned: withRepresentative,
-          unassigned: withoutRepresentative
-        }
+        byStatus: {
+          Active: activeSchools,
+          Inactive: inactiveSchools
+        },
+        withRepresentative: withRepresentative,
+        withoutRepresentative: withoutRepresentative
       }
     });
   } catch (error) {

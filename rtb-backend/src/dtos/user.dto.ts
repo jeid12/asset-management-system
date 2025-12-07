@@ -1,4 +1,40 @@
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min, IsEmail, Length, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateUserDto {
+  @IsString()
+  @Length(3, 100)
+  fullName: string;
+
+  @IsString()
+  @Length(3, 50)
+  username: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @Length(6, 100)
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsEnum(['school', 'admin', 'technician', 'rtb-staff'])
+  role: 'school' | 'admin' | 'technician' | 'rtb-staff';
+
+  @IsOptional()
+  @IsEnum(['Male', 'Female', 'Other'])
+  gender?: 'Male' | 'Female' | 'Other';
+}
+
+export class BulkCreateUserDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateUserDto)
+  users: CreateUserDto[];
+}
 
 export class UpdateUserRoleDto {
   @IsEnum(['school', 'admin', 'technician', 'rtb-staff'])

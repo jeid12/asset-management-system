@@ -3,7 +3,9 @@ import { authenticate } from '../middlewares/auth.middleware';
 import { requireAdmin } from '../middlewares/role.middleware';
 import { 
   getUsers, 
-  getUserById, 
+  getUserById,
+  createUser,
+  bulkCreateUsers,
   updateUserRole, 
   deleteUser,
   getUserStats 
@@ -128,6 +130,116 @@ router.get('/', authenticate, requireAdmin, getUsers);
  *         description: Server error
  */
 router.get('/stats', authenticate, requireAdmin, getUserStats);
+
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Create a new user (Admin only)
+ *     tags: [Admin - User Management]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *               - username
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 example: John Doe
+ *               username:
+ *                 type: string
+ *                 example: johndoe
+ *               email:
+ *                 type: string
+ *                 example: john@example.com
+ *               password:
+ *                 type: string
+ *                 example: SecurePass123
+ *               phoneNumber:
+ *                 type: string
+ *                 example: +250788123456
+ *               role:
+ *                 type: string
+ *                 enum: [school, admin, technician, rtb-staff]
+ *                 example: school
+ *               gender:
+ *                 type: string
+ *                 enum: [Male, Female, Other]
+ *                 example: Male
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error
+ *       409:
+ *         description: Username or email already exists
+ *       500:
+ *         description: Server error
+ */
+router.post('/', authenticate, requireAdmin, createUser);
+
+/**
+ * @swagger
+ * /users/bulk:
+ *   post:
+ *     summary: Bulk create users (Admin only)
+ *     tags: [Admin - User Management]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - users
+ *             properties:
+ *               users:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - fullName
+ *                     - username
+ *                     - email
+ *                     - password
+ *                     - role
+ *                   properties:
+ *                     fullName:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     password:
+ *                       type: string
+ *                     phoneNumber:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                       enum: [school, admin, technician, rtb-staff]
+ *                     gender:
+ *                       type: string
+ *                       enum: [Male, Female, Other]
+ *     responses:
+ *       201:
+ *         description: Bulk import completed
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+router.post('/bulk', authenticate, requireAdmin, bulkCreateUsers);
 
 /**
  * @swagger

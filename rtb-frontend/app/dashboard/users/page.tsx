@@ -39,12 +39,34 @@ export default function UsersPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [stats, setStats] = useState<any>(null);
+  
+  // New user state
+  const [newUser, setNewUser] = useState({
+    fullName: "",
+    username: "",
+    email: "",
+    password: "",
+    phoneNumber: "",
+    role: "school" as "school" | "admin" | "technician" | "rtb-staff",
+    gender: "" as "Male" | "Female" | "Other" | "",
+  });
+
+  // Bulk upload state
+  const [bulkUsers, setBulkUsers] = useState("");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{
+    successful: any[];
+    failed: any[];
+  } | null>(null);
 
   // Check if user is admin or staff
   useEffect(() => {
@@ -105,6 +127,136 @@ export default function UsersPage() {
       console.error("Failed to fetch stats:", error);
     }
   }, [currentUser]);
+
+  // Download CSV template
+  const downloadCSVTemplate = () => {
+    const csvContent = `fullName,username,email,password,phoneNumber,role,gender
+John Doe,johndoe,john@example.com,SecurePass123,+250788123456,school,Male
+Jane Smith,janesmith,jane@example.com,Password456,+250788654321,technician,Female
+Admin User,adminuser,admin@example.com,AdminPass789,+250788111222,admin,Male
+`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'users_bulk_upload_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Parse CSV to JSON
+  const parseCSV = (csvText: string) => {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const users = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const user: any = {};
+
+      headers.forEach((header, index) => {
+        const value = values[index];
+        if (value && value !== '') {
+          user[header] = value;
+        }
+      });
+
+      if (user.fullName && user.username && user.email && user.password && user.role) {
+        users.push(user);
+      }
+    }
+
+    return users;
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await apiClient.post("/users", newUser);
+      if (response.data.success) {
+        setShowAddModal(false);
+        setNewUser({
+          fullName: "",
+          username: "",
+          email: "",
+          password: "",
+          phoneNumber: "",
+          role: "school",
+          gender: "",
+        });
+        fetchUsers();
+        fetchStats();
+        alert("User created successfully!");
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Failed to create user");
+    }
+  };
+
+  const handleBulkCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBulkLoading(true);
+    setBulkResult(null);
+    
+    try {
+      let usersArray;
+
+      // Handle CSV file upload
+      if (csvFile) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const csvText = event.target?.result as string;
+            usersArray = parseCSV(csvText);
+
+            if (usersArray.length === 0) {
+              alert("No valid users found in CSV file. Please check the format.");
+              setBulkLoading(false);
+              return;
+            }
+
+            const response = await apiClient.post("/users/bulk", {
+              users: usersArray
+            });
+
+            if (response.data.success) {
+              setBulkResult(response.data.data);
+              fetchUsers();
+              fetchStats();
+              setCsvFile(null);
+            }
+          } catch (error: any) {
+            alert(error.response?.data?.message || "Failed to process bulk import.");
+          } finally {
+            setBulkLoading(false);
+          }
+        };
+        reader.readAsText(csvFile);
+      } else {
+        // Handle JSON input
+        usersArray = JSON.parse(bulkUsers);
+        
+        const response = await apiClient.post("/users/bulk", {
+          users: usersArray
+        });
+
+        if (response.data.success) {
+          setBulkResult(response.data.data);
+          fetchUsers();
+          fetchStats();
+        }
+        setBulkLoading(false);
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Failed to process bulk import.");
+      setBulkLoading(false);
+    }
+  };
 
   // Fetch users when dependencies change
   useEffect(() => {
@@ -217,6 +369,40 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* Action Buttons */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "1.5rem" }}>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{
+            padding: "10px 20px",
+            background: "#0284c7",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: "500",
+          }}
+        >
+          + Add User
+        </button>
+        <button
+          onClick={() => setShowBulkModal(true)}
+          style={{
+            padding: "10px 20px",
+            background: "#16a34a",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: "500",
+          }}
+        >
+          📤 Bulk Upload
+        </button>
+      </div>
 
       {/* Filters */}
       <div style={{ backgroundColor: "white", padding: "1.5rem", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", marginBottom: "1.5rem" }}>

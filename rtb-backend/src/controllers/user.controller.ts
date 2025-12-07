@@ -1,13 +1,14 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/User';
-import { UpdateUserRoleDto, GetUsersQueryDto } from '../dtos/user.dto';
+import { CreateUserDto, BulkCreateUserDto, UpdateUserRoleDto, GetUsersQueryDto } from '../dtos/user.dto';
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { Like } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { hashPassword } from '../utils/password.util';
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -238,6 +239,166 @@ export const deleteUser = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to delete user'
+    });
+  }
+};
+
+/**
+ * Create a single user (Admin only)
+ */
+export const createUser = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const createDto = plainToClass(CreateUserDto, req.body);
+    const errors = await validate(createDto);
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.map(err => ({
+          field: err.property,
+          errors: Object.values(err.constraints || {})
+        }))
+      });
+    }
+
+    // Check if username already exists
+    const existingUsername = await userRepository.findOne({
+      where: { username: createDto.username }
+    });
+
+    if (existingUsername) {
+      return res.status(409).json({
+        success: false,
+        message: 'Username already exists'
+      });
+    }
+
+    // Check if email already exists
+    const existingEmail = await userRepository.findOne({
+      where: { email: createDto.email }
+    });
+
+    if (existingEmail) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email already exists'
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(createDto.password);
+
+    // Create user
+    const user = userRepository.create({
+      ...createDto,
+      password: hashedPassword
+    });
+
+    const savedUser = await userRepository.save(user);
+
+    // Remove password from response
+    const { password, ...userWithoutPassword } = savedUser;
+
+    return res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create user'
+    });
+  }
+};
+
+/**
+ * Bulk create users (Admin only)
+ */
+export const bulkCreateUsers = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const bulkDto = plainToClass(BulkCreateUserDto, req.body);
+    const errors = await validate(bulkDto);
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.map(err => ({
+          field: err.property,
+          errors: Object.values(err.constraints || {})
+        }))
+      });
+    }
+
+    const results = {
+      successful: [] as any[],
+      failed: [] as any[]
+    };
+
+    for (const userData of bulkDto.users) {
+      try {
+        // Check for duplicate username
+        const existingUsername = await userRepository.findOne({
+          where: { username: userData.username }
+        });
+
+        if (existingUsername) {
+          results.failed.push({
+            username: userData.username,
+            email: userData.email,
+            reason: 'Username already exists'
+          });
+          continue;
+        }
+
+        // Check for duplicate email
+        const existingEmail = await userRepository.findOne({
+          where: { email: userData.email }
+        });
+
+        if (existingEmail) {
+          results.failed.push({
+            username: userData.username,
+            email: userData.email,
+            reason: 'Email already exists'
+          });
+          continue;
+        }
+
+        // Hash password
+        const hashedPassword = await hashPassword(userData.password);
+
+        // Create user
+        const user = userRepository.create({
+          ...userData,
+          password: hashedPassword
+        });
+
+        const savedUser = await userRepository.save(user);
+        const { password, ...userWithoutPassword } = savedUser;
+        results.successful.push(userWithoutPassword);
+      } catch (error: any) {
+        results.failed.push({
+          username: userData.username,
+          email: userData.email,
+          reason: error.message || 'Unknown error'
+        });
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Bulk import completed. ${results.successful.length} succeeded, ${results.failed.length} failed.`,
+      data: results
+    });
+  } catch (error) {
+    console.error('Bulk create users error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to bulk create users'
     });
   }
 };

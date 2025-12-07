@@ -83,128 +83,188 @@ export default function SchoolsPage() {
     email: "",
     phoneNumber: "",
     address: "",
-    representativeId: "",
+    representativeEmail: "",
     status: "Active" as "Active" | "Inactive",
   });
 
   const [bulkSchools, setBulkSchools] = useState("");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<{
-    successful: number;
-    failed: number;
-    errors: any[];
+    successful: any[];
+    failed: any[];
   } | null>(null);
 
   const rwandaProvinces = ["Kigali", "Eastern", "Northern", "Southern", "Western"];
 
-  useEffect(() => {
-    const user = localStorage.getItem("currentUser");
-    if (user) {
-      const parsedUser = JSON.parse(user);
-      setCurrentUser(parsedUser);
+  // Download CSV template
+  const downloadCSVTemplate = () => {
+    const csvContent = `schoolCode,schoolName,category,province,district,sector,cell,village,email,phoneNumber,address,representativeEmail,status
+TSS001,Kigali Technical School,TSS,Kigali,Gasabo,Remera,Rukiri,Kibagabaga,info@kts.rw,+250788123456,KG 123 St,representative1@example.com,Active
+VTC002,Eastern VTC,VTC,Eastern,Rwamagana,Rubona,Nyamiyaga,Gahama,contact@evtc.rw,+250788654321,Rwamagana District,representative2@example.com,Active
+TSS003,Northern Technical School,TSS,Northern,Gicumbi,Rukomo,,,northern@tss.rw,+250788111222,Northern Province,representative3@example.com,Inactive
+`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'school_bulk_upload_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-      if (parsedUser.role !== "admin" && parsedUser.role !== "rtb-staff") {
-        router.push("/dashboard");
-        return;
+  // Parse CSV to JSON
+  const parseCSV = (csvText: string) => {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const schools = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const school: any = {};
+
+      headers.forEach((header, index) => {
+        const value = values[index];
+        if (value && value !== '') {
+          school[header] = value;
+        }
+      });
+
+      if (school.schoolCode && school.schoolName) {
+        schools.push(school);
       }
     }
+
+    return schools;
+  };
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const response = await apiClient.get("/profile/me");
+        const user = response.data.user;
+        setCurrentUser(user);
+
+        // Allow admin, rtb-staff, and school roles
+        if (user.role !== "admin" && user.role !== "rtb-staff" && user.role !== "school") {
+          router.push("/dashboard");
+          return;
+        }
+      } catch (error) {
+        console.error("Access check failed:", error);
+        router.push("/login");
+      }
+    };
+    checkAccess();
   }, [router]);
 
   const fetchSchools = useCallback(async () => {
     if (!currentUser) return;
-    
-    if (currentUser.role !== "admin" && currentUser.role !== "rtb-staff") {
-      return;
-    }
 
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "10",
-      });
-      if (searchTerm) params.append("search", searchTerm);
-      if (categoryFilter) params.append("category", categoryFilter);
-      if (statusFilter) params.append("status", statusFilter);
-      if (provinceFilter) params.append("province", provinceFilter);
+      console.log("Fetching schools...");
+      const params: any = {
+        page: currentPage,
+        limit: 10,
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (categoryFilter) params.category = categoryFilter;
+      if (statusFilter) params.status = statusFilter;
+      if (provinceFilter) params.province = provinceFilter;
 
-      const response = await apiClient(`/schools?${params.toString()}`, {
-        method: "GET",
-      });
+      const response = await apiClient.get("/schools", { params });
+      console.log("Schools response:", response.data);
 
-      if (response.success) {
-        setSchools(response.data.schools);
-        setTotalPages(response.data.pagination.totalPages);
-      }
-    } catch (error) {
+      setSchools(response.data.data || []);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+    } catch (error: any) {
       console.error("Error fetching schools:", error);
+      console.error("Error response:", error.response?.data);
+      setSchools([]);
+      setTotalPages(1);
     }
   }, [currentUser, currentPage, searchTerm, categoryFilter, statusFilter, provinceFilter]);
 
   const fetchStatistics = useCallback(async () => {
     if (!currentUser) return;
     
+    // Only admin and rtb-staff can see full statistics
     if (currentUser.role !== "admin" && currentUser.role !== "rtb-staff") {
       return;
     }
 
     try {
-      const response = await apiClient("/schools/stats", {
-        method: "GET",
-      });
-
-      if (response.success) {
-        setStatistics(response.data);
-      }
-    } catch (error) {
+      console.log("Fetching statistics...");
+      const response = await apiClient.get("/schools/stats");
+      console.log("Statistics response:", response.data);
+      setStatistics(response.data.data || null);
+    } catch (error: any) {
       console.error("Error fetching statistics:", error);
+      console.error("Error response:", error.response?.data);
+      setStatistics(null);
     }
   }, [currentUser]);
 
   const fetchUsers = useCallback(async () => {
     if (!currentUser) return;
     
+    // Only admin and rtb-staff need to fetch users for representative assignment
     if (currentUser.role !== "admin" && currentUser.role !== "rtb-staff") {
       return;
     }
 
     try {
-      const response = await apiClient("/users?role=school&limit=1000", {
-        method: "GET",
+      console.log("Fetching users...");
+      const response = await apiClient.get("/users", {
+        params: { role: "school", limit: 1000 }
       });
-
-      if (response.success) {
-        setUsers(response.data.users);
-      }
-    } catch (error) {
+      console.log("Users response:", response.data);
+      setUsers(response.data.data || []);
+    } catch (error: any) {
       console.error("Error fetching users:", error);
+      console.error("Error response:", error.response?.data);
+      setUsers([]);
     }
   }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchSchools();
-      fetchStatistics();
-      fetchUsers();
-      setLoading(false);
-    }
+    const loadData = async () => {
+      if (currentUser) {
+        try {
+          await Promise.all([
+            fetchSchools(),
+            fetchStatistics(),
+            fetchUsers()
+          ]);
+        } catch (error) {
+          console.error("Error loading data:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    loadData();
   }, [currentUser, fetchSchools, fetchStatistics, fetchUsers]);
 
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await apiClient("/schools", {
-        method: "POST",
-        body: JSON.stringify({
-          ...newSchool,
-          cell: newSchool.cell || undefined,
-          village: newSchool.village || undefined,
-          email: newSchool.email || undefined,
-          phoneNumber: newSchool.phoneNumber || undefined,
-          address: newSchool.address || undefined,
-          representativeId: newSchool.representativeId || undefined,
-        }),
+      const response = await apiClient.post("/schools", {
+        ...newSchool,
+        cell: newSchool.cell || undefined,
+        village: newSchool.village || undefined,
+        email: newSchool.email || undefined,
+        phoneNumber: newSchool.phoneNumber || undefined,
+        address: newSchool.address || undefined,
+        representativeId: newSchool.representativeId || undefined,
       });
 
-      if (response.success) {
+      if (response.data.success) {
         setShowAddModal(false);
         setNewSchool({
           schoolCode: "",
@@ -235,26 +295,28 @@ export default function SchoolsPage() {
     if (!selectedSchool) return;
 
     try {
-      const response = await apiClient(`/schools/${selectedSchool.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          schoolCode: selectedSchool.schoolCode,
-          schoolName: selectedSchool.schoolName,
-          category: selectedSchool.category,
-          province: selectedSchool.province,
-          district: selectedSchool.district,
-          sector: selectedSchool.sector,
-          cell: selectedSchool.cell || undefined,
-          village: selectedSchool.village || undefined,
-          email: selectedSchool.email || undefined,
-          phoneNumber: selectedSchool.phoneNumber || undefined,
-          address: selectedSchool.address || undefined,
-          representativeId: selectedSchool.representativeId || undefined,
-          status: selectedSchool.status,
-        }),
+      // Find representative email if representativeId exists
+      const representativeEmail = selectedSchool.representativeId 
+        ? users.find(u => u.id === selectedSchool.representativeId)?.email 
+        : undefined;
+
+      const response = await apiClient.patch(`/schools/${selectedSchool.id}`, {
+        schoolCode: selectedSchool.schoolCode,
+        schoolName: selectedSchool.schoolName,
+        category: selectedSchool.category,
+        province: selectedSchool.province,
+        district: selectedSchool.district,
+        sector: selectedSchool.sector,
+        cell: selectedSchool.cell || undefined,
+        village: selectedSchool.village || undefined,
+        email: selectedSchool.email || undefined,
+        phoneNumber: selectedSchool.phoneNumber || undefined,
+        address: selectedSchool.address || undefined,
+        representativeEmail: representativeEmail,
+        status: selectedSchool.status,
       });
 
-      if (response.success) {
+      if (response.data.success) {
         setShowEditModal(false);
         setSelectedSchool(null);
         fetchSchools();
@@ -270,11 +332,9 @@ export default function SchoolsPage() {
     if (!selectedSchool || deleteConfirmation !== "DELETE") return;
 
     try {
-      const response = await apiClient(`/schools/${selectedSchool.id}`, {
-        method: "DELETE",
-      });
+      const response = await apiClient.delete(`/schools/${selectedSchool.id}`);
 
-      if (response.success) {
+      if (response.data.success) {
         setShowDeleteModal(false);
         setSelectedSchool(null);
         setDeleteConfirmation("");
@@ -289,21 +349,61 @@ export default function SchoolsPage() {
 
   const handleBulkCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBulkLoading(true);
+    setBulkResult(null);
+    
     try {
-      const schoolsArray = JSON.parse(bulkSchools);
-      
-      const response = await apiClient("/schools/bulk", {
-        method: "POST",
-        body: JSON.stringify({ schools: schoolsArray }),
-      });
+      let schoolsArray;
 
-      if (response.success) {
-        setBulkResult(response.data);
-        fetchSchools();
-        fetchStatistics();
+      // Handle CSV file upload
+      if (csvFile) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const csvText = event.target?.result as string;
+            schoolsArray = parseCSV(csvText);
+
+            if (schoolsArray.length === 0) {
+              alert("No valid schools found in CSV file. Please check the format.");
+              setBulkLoading(false);
+              return;
+            }
+
+            const response = await apiClient.post("/schools/bulk", {
+              schools: schoolsArray
+            });
+
+            if (response.data.success) {
+              setBulkResult(response.data.data);
+              fetchSchools();
+              fetchStatistics();
+              setCsvFile(null);
+            }
+          } catch (error: any) {
+            alert(error.message || "Failed to process bulk import. Please check the format.");
+          } finally {
+            setBulkLoading(false);
+          }
+        };
+        reader.readAsText(csvFile);
+      } else {
+        // Handle JSON input
+        schoolsArray = JSON.parse(bulkSchools);
+        
+        const response = await apiClient.post("/schools/bulk", {
+          schools: schoolsArray
+        });
+
+        if (response.data.success) {
+          setBulkResult(response.data.data);
+          fetchSchools();
+          fetchStatistics();
+        }
+        setBulkLoading(false);
       }
     } catch (error: any) {
-      alert(error.message || "Failed to process bulk import. Please check JSON format.");
+      alert(error.message || "Failed to process bulk import. Please check the format.");
+      setBulkLoading(false);
     }
   };
 
@@ -328,37 +428,37 @@ export default function SchoolsPage() {
             <div style={{ background: "#f0f9ff", padding: "15px", borderRadius: "8px" }}>
               <div style={{ fontSize: "14px", color: "#666" }}>Total Schools</div>
               <div style={{ fontSize: "28px", fontWeight: "bold", color: "#0284c7" }}>
-                {statistics.total}
+                {statistics.total || 0}
               </div>
             </div>
             <div style={{ background: "#fef3c7", padding: "15px", borderRadius: "8px" }}>
               <div style={{ fontSize: "14px", color: "#666" }}>TSS</div>
               <div style={{ fontSize: "28px", fontWeight: "bold", color: "#d97706" }}>
-                {statistics.byCategory.TSS}
+                {statistics.byCategory?.TSS || 0}
               </div>
             </div>
             <div style={{ background: "#ddd6fe", padding: "15px", borderRadius: "8px" }}>
               <div style={{ fontSize: "14px", color: "#666" }}>VTC</div>
               <div style={{ fontSize: "28px", fontWeight: "bold", color: "#7c3aed" }}>
-                {statistics.byCategory.VTC}
+                {statistics.byCategory?.VTC || 0}
               </div>
             </div>
             <div style={{ background: "#dcfce7", padding: "15px", borderRadius: "8px" }}>
               <div style={{ fontSize: "14px", color: "#666" }}>Active</div>
               <div style={{ fontSize: "28px", fontWeight: "bold", color: "#16a34a" }}>
-                {statistics.byStatus.Active}
+                {statistics.byStatus?.Active || 0}
               </div>
             </div>
             <div style={{ background: "#fee2e2", padding: "15px", borderRadius: "8px" }}>
               <div style={{ fontSize: "14px", color: "#666" }}>Inactive</div>
               <div style={{ fontSize: "28px", fontWeight: "bold", color: "#dc2626" }}>
-                {statistics.byStatus.Inactive}
+                {statistics.byStatus?.Inactive || 0}
               </div>
             </div>
             <div style={{ background: "#e0e7ff", padding: "15px", borderRadius: "8px" }}>
               <div style={{ fontSize: "14px", color: "#666" }}>With Representative</div>
               <div style={{ fontSize: "28px", fontWeight: "bold", color: "#4f46e5" }}>
-                {statistics.withRepresentative}
+                {statistics.withRepresentative || 0}
               </div>
             </div>
           </div>
@@ -422,32 +522,36 @@ export default function SchoolsPage() {
               </option>
             ))}
           </select>
-          <button
-            onClick={() => setShowAddModal(true)}
-            style={{
-              padding: "8px 16px",
-              background: "#16a34a",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            + Add School
-          </button>
-          <button
-            onClick={() => setShowBulkModal(true)}
-            style={{
-              padding: "8px 16px",
-              background: "#0284c7",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Bulk Import
-          </button>
+          {(currentUser?.role === "admin" || currentUser?.role === "rtb-staff") && (
+            <>
+              <button
+                onClick={() => setShowAddModal(true)}
+                style={{
+                  padding: "8px 16px",
+                  background: "#16a34a",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                + Add School
+              </button>
+              <button
+                onClick={() => setShowBulkModal(true)}
+                style={{
+                  padding: "8px 16px",
+                  background: "#0284c7",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Bulk Import
+              </button>
+            </>
+          )}
         </div>
 
         {/* Schools Table */}
@@ -514,39 +618,61 @@ export default function SchoolsPage() {
                     </span>
                   </td>
                   <td style={{ padding: "12px" }}>
-                    <button
-                      onClick={() => {
-                        setSelectedSchool(school);
-                        setShowEditModal(true);
-                      }}
-                      style={{
-                        padding: "6px 12px",
-                        background: "#0284c7",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        marginRight: "8px",
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedSchool(school);
-                        setShowDeleteModal(true);
-                      }}
-                      style={{
-                        padding: "6px 12px",
-                        background: "#dc2626",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {(currentUser?.role === "admin" || currentUser?.role === "rtb-staff") && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedSchool(school);
+                            setShowEditModal(true);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            background: "#0284c7",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            marginRight: "8px",
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedSchool(school);
+                            setShowDeleteModal(true);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            background: "#dc2626",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                    {currentUser?.role === "school" && (
+                      <button
+                        onClick={() => {
+                          setSelectedSchool(school);
+                          setShowEditModal(true);
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          background: "#6b7280",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        View Details
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -759,20 +885,23 @@ export default function SchoolsPage() {
                   </div>
                   <div>
                     <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
-                      Representative
+                      Representative (School Role User)
                     </label>
                     <select
-                      value={newSchool.representativeId}
-                      onChange={(e) => setNewSchool({ ...newSchool, representativeId: e.target.value })}
+                      value={newSchool.representativeEmail}
+                      onChange={(e) => setNewSchool({ ...newSchool, representativeEmail: e.target.value })}
                       style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
                     >
                       <option value="">No Representative</option>
                       {users.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.fullName} ({user.email})
+                        <option key={user.id} value={user.email}>
+                          {user.fullName}
                         </option>
                       ))}
                     </select>
+                    <small style={{ display: "block", marginTop: "5px", color: "#6b7280" }}>
+                      Only users with 'school' role can be assigned
+                    </small>
                   </div>
                   <div>
                     <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
@@ -867,7 +996,7 @@ export default function SchoolsPage() {
               }}
             >
               <h2 style={{ marginBottom: "20px", fontSize: "20px", fontWeight: "bold" }}>
-                Edit School
+                {currentUser?.role === "school" ? "School Details" : "Edit School"}
               </h2>
               <form onSubmit={handleEditSchool}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
@@ -880,7 +1009,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.schoolCode}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, schoolCode: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -892,7 +1022,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.schoolName}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, schoolName: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -903,7 +1034,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.category}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, category: e.target.value as any })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     >
                       <option value="TSS">TSS</option>
                       <option value="VTC">VTC</option>
@@ -918,7 +1050,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.province}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, province: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     >
                       <option value="">Select Province</option>
                       {rwandaProvinces.map((province) => (
@@ -937,7 +1070,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.district}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, district: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -949,7 +1083,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.sector}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, sector: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -960,7 +1095,8 @@ export default function SchoolsPage() {
                       type="text"
                       value={selectedSchool.cell || ""}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, cell: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -971,7 +1107,8 @@ export default function SchoolsPage() {
                       type="text"
                       value={selectedSchool.village || ""}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, village: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -982,7 +1119,8 @@ export default function SchoolsPage() {
                       type="email"
                       value={selectedSchool.email || ""}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, email: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -993,7 +1131,8 @@ export default function SchoolsPage() {
                       type="text"
                       value={selectedSchool.phoneNumber || ""}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, phoneNumber: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
@@ -1004,7 +1143,8 @@ export default function SchoolsPage() {
                       type="text"
                       value={selectedSchool.address || ""}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, address: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     />
                   </div>
                   <div>
@@ -1014,12 +1154,13 @@ export default function SchoolsPage() {
                     <select
                       value={selectedSchool.representativeId || ""}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, representativeId: e.target.value })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     >
                       <option value="">No Representative</option>
                       {users.map((user) => (
                         <option key={user.id} value={user.id}>
-                          {user.fullName} ({user.email})
+                          {user.fullName} - {user.email}
                         </option>
                       ))}
                     </select>
@@ -1032,7 +1173,8 @@ export default function SchoolsPage() {
                       required
                       value={selectedSchool.status}
                       onChange={(e) => setSelectedSchool({ ...selectedSchool, status: e.target.value as any })}
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                      disabled={currentUser?.role === "school"}
+                      style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px", background: currentUser?.role === "school" ? "#f3f4f6" : "white" }}
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -1054,21 +1196,23 @@ export default function SchoolsPage() {
                       cursor: "pointer",
                     }}
                   >
-                    Cancel
+                    {currentUser?.role === "school" ? "Close" : "Cancel"}
                   </button>
-                  <button
-                    type="submit"
-                    style={{
-                      padding: "10px 20px",
-                      background: "#0284c7",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Update School
-                  </button>
+                  {(currentUser?.role === "admin" || currentUser?.role === "rtb-staff") && (
+                    <button
+                      type="submit"
+                      style={{
+                        padding: "10px 20px",
+                        background: "#0284c7",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Update School
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -1189,19 +1333,66 @@ export default function SchoolsPage() {
               <h2 style={{ marginBottom: "15px", fontSize: "20px", fontWeight: "bold" }}>
                 Bulk Import Schools
               </h2>
-              <p style={{ marginBottom: "15px", fontSize: "14px", color: "#6b7280" }}>
-                Enter a JSON array of schools. Example:
-              </p>
-              <pre
-                style={{
-                  background: "#f9fafb",
-                  padding: "15px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  marginBottom: "15px",
-                  overflow: "auto",
-                }}
-              >
+              
+              {/* CSV Upload Section */}
+              <div style={{ marginBottom: "20px", padding: "15px", background: "#f0f9ff", borderRadius: "8px" }}>
+                <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "10px", color: "#0284c7" }}>
+                  Option 1: Upload CSV File (Recommended)
+                </h3>
+                <button
+                  type="button"
+                  onClick={downloadCSVTemplate}
+                  style={{
+                    padding: "8px 16px",
+                    background: "#10b981",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    marginBottom: "10px",
+                    fontSize: "14px",
+                  }}
+                >
+                  📥 Download CSV Template
+                </button>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "8px",
+                    border: "1px solid #ddd",
+                    borderRadius: "6px",
+                    marginTop: "10px",
+                  }}
+                />
+                {csvFile && (
+                  <p style={{ marginTop: "8px", fontSize: "14px", color: "#059669" }}>
+                    ✅ Selected: {csvFile.name}
+                  </p>
+                )}
+              </div>
+
+              {/* JSON Input Section */}
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "10px", color: "#6b7280" }}>
+                  Option 2: Paste JSON (Advanced)
+                </h3>
+                <p style={{ marginBottom: "10px", fontSize: "14px", color: "#6b7280" }}>
+                  Enter a JSON array of schools. Example:
+                </p>
+                <pre
+                  style={{
+                    background: "#f9fafb",
+                    padding: "15px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    marginBottom: "15px",
+                    overflow: "auto",
+                  }}
+                >
 {`[
   {
     "schoolCode": "TSS001",
@@ -1210,21 +1401,27 @@ export default function SchoolsPage() {
     "province": "Kigali",
     "district": "Gasabo",
     "sector": "Remera",
+    "cell": "Rukiri",
+    "village": "Kibagabaga",
+    "email": "info@kts.rw",
+    "phoneNumber": "+250788123456",
+    "address": "KG 123 St",
+    "representativeEmail": "representative1@example.com",
     "status": "Active"
   },
   {
-    "schoolCode": "VTC001",
+    "schoolCode": "VTC002",
     "schoolName": "Eastern VTC",
     "category": "VTC",
     "province": "Eastern",
     "district": "Rwamagana",
     "sector": "Rubona",
     "email": "info@easternvtc.rw",
+    "representativeEmail": "representative2@example.com",
     "status": "Active"
   }
 ]`}
-              </pre>
-              <form onSubmit={handleBulkCreate}>
+                </pre>
                 <textarea
                   value={bulkSchools}
                   onChange={(e) => setBulkSchools(e.target.value)}
@@ -1239,26 +1436,30 @@ export default function SchoolsPage() {
                     fontSize: "13px",
                     marginBottom: "15px",
                   }}
-                  required
                 />
+              </div>
+
+              <form onSubmit={handleBulkCreate}>
                 {bulkResult && (
                   <div
                     style={{
                       padding: "15px",
                       borderRadius: "6px",
                       marginBottom: "15px",
-                      background: bulkResult.failed > 0 ? "#fef3c7" : "#dcfce7",
+                      background: bulkResult.failed.length > 0 ? "#fef3c7" : "#dcfce7",
                     }}
                   >
                     <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Import Results:</p>
-                    <p>✅ Successful: {bulkResult.successful}</p>
-                    <p>❌ Failed: {bulkResult.failed}</p>
-                    {bulkResult.errors.length > 0 && (
+                    <p>✅ Successful: {bulkResult.successful.length}</p>
+                    <p>❌ Failed: {bulkResult.failed.length}</p>
+                    {bulkResult.failed.length > 0 && (
                       <div style={{ marginTop: "10px" }}>
-                        <p style={{ fontWeight: "bold" }}>Errors:</p>
+                        <p style={{ fontWeight: "bold" }}>Failed Schools:</p>
                         <ul style={{ marginLeft: "20px", fontSize: "14px" }}>
-                          {bulkResult.errors.map((error, idx) => (
-                            <li key={idx}>{JSON.stringify(error)}</li>
+                          {bulkResult.failed.map((error, idx) => (
+                            <li key={idx}>
+                              {error.schoolCode}: {error.reason}
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -1272,6 +1473,7 @@ export default function SchoolsPage() {
                       setShowBulkModal(false);
                       setBulkSchools("");
                       setBulkResult(null);
+                      setCsvFile(null);
                     }}
                     style={{
                       padding: "10px 20px",
@@ -1285,16 +1487,17 @@ export default function SchoolsPage() {
                   </button>
                   <button
                     type="submit"
+                    disabled={bulkLoading || (!csvFile && !bulkSchools.trim())}
                     style={{
                       padding: "10px 20px",
-                      background: "#0284c7",
+                      background: (bulkLoading || (!csvFile && !bulkSchools.trim())) ? "#d1d5db" : "#0284c7",
                       color: "white",
                       border: "none",
                       borderRadius: "6px",
-                      cursor: "pointer",
+                      cursor: (bulkLoading || (!csvFile && !bulkSchools.trim())) ? "not-allowed" : "pointer",
                     }}
                   >
-                    Import Schools
+                    {bulkLoading ? "Importing..." : csvFile ? "Import from CSV" : "Import from JSON"}
                   </button>
                 </div>
               </form>
