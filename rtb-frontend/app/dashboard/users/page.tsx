@@ -793,6 +793,358 @@ Admin User,adminuser,admin@example.com,AdminPass789,+250788111222,admin,Male
           </div>
         </div>
       )}
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "30px",
+              borderRadius: "12px",
+              width: "90%",
+              maxWidth: "600px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <h2 style={{ marginBottom: "20px", fontSize: "20px", fontWeight: "bold" }}>
+              Add New User
+            </h2>
+            <form onSubmit={handleAddUser}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newUser.fullName}
+                    onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={newUser.phoneNumber}
+                    onChange={(e) => setNewUser({ ...newUser, phoneNumber: e.target.value })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Role *
+                  </label>
+                  <select
+                    required
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  >
+                    <option value="school">School</option>
+                    <option value="technician">Technician</option>
+                    <option value="rtb-staff">RTB Staff</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+                    Gender
+                  </label>
+                  <select
+                    value={newUser.gender}
+                    onChange={(e) => setNewUser({ ...newUser, gender: e.target.value as any })}
+                    style={{ width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "6px" }}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setNewUser({
+                      fullName: "",
+                      username: "",
+                      email: "",
+                      password: "",
+                      phoneNumber: "",
+                      role: "school",
+                      gender: "",
+                    });
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#e5e7eb",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "10px 20px",
+                    background: "#0284c7",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Create User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "30px",
+              borderRadius: "12px",
+              width: "90%",
+              maxWidth: "700px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <h2 style={{ marginBottom: "15px", fontSize: "20px", fontWeight: "bold" }}>
+              Bulk Import Users
+            </h2>
+            
+            {/* CSV Upload Section */}
+            <div style={{ marginBottom: "20px", padding: "15px", background: "#f0f9ff", borderRadius: "8px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "10px", color: "#0284c7" }}>
+                Option 1: Upload CSV File (Recommended)
+              </h3>
+              <button
+                type="button"
+                onClick={downloadCSVTemplate}
+                style={{
+                  padding: "8px 16px",
+                  background: "#10b981",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  marginBottom: "10px",
+                  fontSize: "14px",
+                }}
+              >
+                📥 Download CSV Template
+              </button>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  marginTop: "10px",
+                }}
+              />
+              {csvFile && (
+                <p style={{ marginTop: "8px", fontSize: "14px", color: "#059669" }}>
+                  ✅ Selected: {csvFile.name}
+                </p>
+              )}
+            </div>
+
+            {/* JSON Input Section */}
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "10px", color: "#6b7280" }}>
+                Option 2: Paste JSON (Advanced)
+              </h3>
+              <p style={{ marginBottom: "10px", fontSize: "14px", color: "#6b7280" }}>
+                Enter a JSON array of users. Example:
+              </p>
+              <pre
+                style={{
+                  background: "#f9fafb",
+                  padding: "15px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  marginBottom: "15px",
+                  overflow: "auto",
+                }}
+              >
+{`[
+  {
+    "fullName": "John Doe",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "SecurePass123",
+    "phoneNumber": "+250788123456",
+    "role": "school",
+    "gender": "Male"
+  }
+]`}
+              </pre>
+              <textarea
+                value={bulkUsers}
+                onChange={(e) => setBulkUsers(e.target.value)}
+                placeholder="Paste JSON array here..."
+                rows={12}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  fontFamily: "monospace",
+                  fontSize: "13px",
+                  marginBottom: "15px",
+                }}
+              />
+            </div>
+
+            <form onSubmit={handleBulkCreate}>
+              {bulkResult && (
+                <div
+                  style={{
+                    padding: "15px",
+                    borderRadius: "6px",
+                    marginBottom: "15px",
+                    background: bulkResult.failed.length > 0 ? "#fef3c7" : "#dcfce7",
+                  }}
+                >
+                  <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Import Results:</p>
+                  <p>✅ Successful: {bulkResult.successful.length}</p>
+                  <p>❌ Failed: {bulkResult.failed.length}</p>
+                  {bulkResult.failed.length > 0 && (
+                    <div style={{ marginTop: "10px" }}>
+                      <p style={{ fontWeight: "bold" }}>Failed Users:</p>
+                      <ul style={{ marginLeft: "20px", fontSize: "14px" }}>
+                        {bulkResult.failed.map((error, idx) => (
+                          <li key={idx}>
+                            {error.username} ({error.email}): {error.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBulkModal(false);
+                    setBulkUsers("");
+                    setBulkResult(null);
+                    setCsvFile(null);
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#e5e7eb",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={bulkLoading || (!csvFile && !bulkUsers.trim())}
+                  style={{
+                    padding: "10px 20px",
+                    background: (bulkLoading || (!csvFile && !bulkUsers.trim())) ? "#d1d5db" : "#0284c7",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: (bulkLoading || (!csvFile && !bulkUsers.trim())) ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {bulkLoading ? "Importing..." : csvFile ? "Import from CSV" : "Import from JSON"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       </div>
     </DashboardLayout>
   );
