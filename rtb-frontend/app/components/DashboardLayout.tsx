@@ -4,7 +4,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome } from "react-icons/fa";
+import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome, FaSchool } from "react-icons/fa";
 import SettingsModal from "../dashboard/SettingsModal";
 import apiClient from "@/app/utils/api";
 
@@ -45,10 +45,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setCurrentUser(updatedUser);
   };
 
+  // Conditionally show Users and Schools links only for admin and rtb-staff
   const navigationItems = [
     { label: "Dashboard", href: "/dashboard", icon: FaHome },
     { label: "Devices", href: "/dashboard/devices", icon: FaLaptop },
-    { label: "Users", href: "/dashboard/users", icon: FaUsers },
+    ...(currentUser?.role === "admin" || currentUser?.role === "rtb-staff" 
+      ? [
+          { label: "Users", href: "/dashboard/users", icon: FaUsers },
+          { label: "Schools", href: "/dashboard/schools", icon: FaSchool }
+        ] 
+      : []
+    ),
     { label: "Notifications", href: "/dashboard/notifications", icon: FaBell },
     { label: "Reports", href: "/dashboard/reports", icon: FaFileAlt },
   ];

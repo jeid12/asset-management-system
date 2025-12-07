@@ -319,6 +319,94 @@ const options = {
             },
           },
         },
+        School: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+            },
+            schoolCode: {
+              type: 'string',
+              example: 'TSS001',
+            },
+            schoolName: {
+              type: 'string',
+              example: 'Kigali Technical Secondary School',
+            },
+            category: {
+              type: 'string',
+              enum: ['TSS', 'VTC', 'Other'],
+              example: 'TSS',
+            },
+            province: {
+              type: 'string',
+              example: 'Kigali City',
+            },
+            district: {
+              type: 'string',
+              example: 'Gasabo',
+            },
+            sector: {
+              type: 'string',
+              example: 'Remera',
+            },
+            cell: {
+              type: 'string',
+              nullable: true,
+            },
+            village: {
+              type: 'string',
+              nullable: true,
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              nullable: true,
+            },
+            phoneNumber: {
+              type: 'string',
+              nullable: true,
+            },
+            address: {
+              type: 'string',
+              nullable: true,
+            },
+            representativeId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true,
+            },
+            representative: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                id: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+                fullName: {
+                  type: 'string',
+                },
+                email: {
+                  type: 'string',
+                },
+              },
+            },
+            status: {
+              type: 'string',
+              enum: ['Active', 'Inactive'],
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
       },
     },
   },
