@@ -94,16 +94,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div style={{ 
             backgroundColor: "white", 
             borderRadius: "12px", 
-            padding: "0.75rem 1rem", 
+            padding: "0.5rem", 
             marginBottom: "0.75rem",
+            margin: "0 auto",
+            width: "60px",
+            height: "60px",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
           }}>
-            <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "#1e3a8a", letterSpacing: "0.05em" }}>RTB</div>
-            <div style={{ fontSize: "0.5rem", color: "#4B5563", marginTop: "0.15rem", fontWeight: "600" }}>TVET BOARD</div>
+            <img 
+              src="/images/logo.jpg" 
+              alt="Rwanda TVET Board" 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
           <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: "700", lineHeight: "1.3", letterSpacing: "0.02em" }}>Rwanda TVET Board</h2>
           <p style={{ margin: "0.35rem 0 0 0", fontSize: "0.65rem", opacity: 0.9, fontWeight: "500" }}>Asset Management</p>

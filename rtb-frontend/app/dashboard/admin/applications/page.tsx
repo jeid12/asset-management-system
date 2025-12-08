@@ -76,6 +76,9 @@ export default function ManageApplicationsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   // Review modal
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -103,6 +106,12 @@ export default function ManageApplicationsPage() {
     checkUserRole();
   }, []);
 
+  useEffect(() => {
+    if (userRole === "admin" || userRole === "rtb-staff") {
+      fetchApplications();
+    }
+  }, [page, filterStatus]);
+
   const checkUserRole = async () => {
     try {
       const response = await apiClient.get("/profile/me");
@@ -127,9 +136,13 @@ export default function ManageApplicationsPage() {
       setLoading(true);
       const params = new URLSearchParams();
       if (filterStatus) params.append("status", filterStatus);
+      params.append("page", page.toString());
+      params.append("limit", "10");
       
       const response = await apiClient.get(`/applications?${params.toString()}`);
       setApplications(response.data.applications || []);
+      setTotal(response.data.total || 0);
+      setTotalPages(response.data.totalPages || 1);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to fetch applications");
     } finally {
@@ -525,6 +538,47 @@ export default function ManageApplicationsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && applications.length > 0 && totalPages > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginTop: "24px" }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              style={{
+                backgroundColor: page === 1 ? "#E5E7EB" : "#3B82F6",
+                color: page === 1 ? "#9CA3AF" : "white",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: page === 1 ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              Previous
+            </button>
+            <span style={{ color: "#6B7280", fontSize: "14px" }}>
+              Page {page} of {totalPages} ({total} total)
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              style={{
+                backgroundColor: page === totalPages ? "#E5E7EB" : "#3B82F6",
+                color: page === totalPages ? "#9CA3AF" : "white",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: page === totalPages ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Application Details Modal */}
         {selectedApplication && (

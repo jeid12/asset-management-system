@@ -12,16 +12,21 @@ export default function LandingPage() {
       <header className="flex justify-between items-center px-8 py-4 bg-white/90 backdrop-blur-md shadow-md">
         <div className="flex items-center gap-3">
           <div style={{ 
-            backgroundColor: "#1e3a8a", 
-            borderRadius: "16px", 
-            padding: "0.85rem 1.5rem",
+            backgroundColor: "white", 
+            borderRadius: "12px", 
+            padding: "0.5rem",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.2)"
+            justifyContent: "center",
+            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.15)",
+            width: "70px",
+            height: "70px"
           }}>
-            <div style={{ fontSize: "2rem", fontWeight: "bold", color: "white", letterSpacing: "0.05em" }}>RTB</div>
-            <div style={{ fontSize: "0.5rem", color: "#93C5FD", marginTop: "0.15rem", fontWeight: "600" }}>TVET BOARD</div>
+            <img 
+              src="/images/logo.jpg" 
+              alt="Rwanda TVET Board" 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
           <div>
             <h1 style={{ fontSize: "1.15rem", fontWeight: "700", color: "#1e3a8a", margin: 0, letterSpacing: "0.02em" }}>
