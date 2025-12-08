@@ -12,6 +12,7 @@ import profileRoutes from "./routes/profile.routes";
 import userRoutes from "./routes/user.routes";
 import schoolRoutes from "./routes/school.routes";
 import deviceRoutes from "./routes/device.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 
 // Load environment variables
 dotenv.config();
@@ -64,6 +65,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/schools", schoolRoutes);
 app.use("/api/devices", deviceRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
