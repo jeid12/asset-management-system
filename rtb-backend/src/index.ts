@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
 import userRoutes from "./routes/user.routes";
 import schoolRoutes from "./routes/school.routes";
+import deviceRoutes from "./routes/device.routes";
 
 // Load environment variables
 dotenv.config();
@@ -62,6 +63,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/schools", schoolRoutes);
+app.use("/api/devices", deviceRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
