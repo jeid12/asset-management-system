@@ -4,7 +4,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome, FaSchool, FaClipboardList } from "react-icons/fa";
+import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome, FaSchool, FaClipboardList, FaClipboardCheck, FaBars, FaTimes } from "react-icons/fa";
 import SettingsModal from "../dashboard/SettingsModal";
 import NotificationBell from "./NotificationBell";
 import apiClient from "@/app/utils/api";
@@ -28,6 +28,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [showSettings, setShowSettings] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // Fetch current user profile
@@ -54,7 +55,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ? [
           { label: "Users", href: "/dashboard/users", icon: FaUsers },
           { label: "Schools", href: "/dashboard/schools", icon: FaSchool },
-          { label: "Applications", href: "/dashboard/admin/applications", icon: FaClipboardList }
+          { label: "Applications", href: "/dashboard/admin/applications", icon: FaClipboardList },
+          ...(currentUser?.role === "admin" 
+            ? [{ label: "Audit Logs", href: "/dashboard/admin/audit-logs", icon: FaClipboardCheck }]
+            : []
+          )
         ] 
       : currentUser?.role === "school"
       ? [
@@ -78,7 +83,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Vertical Sidebar */}
       <aside
         style={{
-          width: "250px",
+          width: isSidebarCollapsed ? "80px" : "250px",
           backgroundColor: "#1e3a8a",
           color: "white",
           padding: "2rem 0",
@@ -87,22 +92,61 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           left: 0,
           top: 0,
           boxShadow: "2px 0 10px rgba(0, 0, 0, 0.1)",
+          transition: "width 0.3s ease",
+          overflow: "hidden",
         }}
       >
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          style={{
+            position: "absolute",
+            top: "1rem",
+            right: isSidebarCollapsed ? "1rem" : "1rem",
+            backgroundColor: "rgba(96, 165, 250, 0.2)",
+            border: "1px solid rgba(96, 165, 250, 0.3)",
+            color: "white",
+            padding: "0.5rem",
+            borderRadius: "6px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.3)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.2)";
+          }}
+        >
+          {isSidebarCollapsed ? <FaBars size="1rem" /> : <FaTimes size="1rem" />}
+        </button>
+
         {/* Logo/Brand */}
-        <div style={{ padding: "1rem 1rem", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", textAlign: "center" }}>
+        <div style={{ 
+          padding: isSidebarCollapsed ? "3rem 0.5rem 1rem" : "3rem 1rem 1rem", 
+          marginBottom: "1.5rem", 
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)", 
+          textAlign: "center",
+          transition: "padding 0.3s ease"
+        }}>
           <div style={{ 
             backgroundColor: "white", 
             borderRadius: "12px", 
             padding: "0.5rem", 
-            marginBottom: "0.75rem",
-            margin: "0 auto",
-            width: "60px",
-            height: "60px",
+            marginLeft: "auto",
+            marginRight: "auto",
+            marginBottom: isSidebarCollapsed ? "0" : "0.75rem",
+            width: isSidebarCollapsed ? "40px" : "60px",
+            height: isSidebarCollapsed ? "40px" : "60px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+            transition: "all 0.3s ease"
           }}>
             <img 
               src="/images/logo.jpg" 
@@ -110,9 +154,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
-          <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: "700", lineHeight: "1.3", letterSpacing: "0.02em" }}>Rwanda TVET Board</h2>
-          <p style={{ margin: "0.35rem 0 0 0", fontSize: "0.65rem", opacity: 0.9, fontWeight: "500" }}>Asset Management</p>
-          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.6rem", opacity: 0.7, fontStyle: "italic" }}>rtb.gov.rw</p>
+          {!isSidebarCollapsed && (
+            <>
+              <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: "700", lineHeight: "1.3", letterSpacing: "0.02em" }}>Rwanda TVET Board</h2>
+              <p style={{ margin: "0.35rem 0 0 0", fontSize: "0.65rem", opacity: 0.9, fontWeight: "500" }}>Asset Management</p>
+              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.6rem", opacity: 0.7, fontStyle: "italic" }}>rtb.gov.rw</p>
+            </>
+          )}
         </div>
 
         {/* Navigation Items */}
@@ -124,8 +172,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: isSidebarCollapsed ? "center" : "flex-start",
                 gap: "0.75rem",
-                padding: "1rem 1.5rem",
+                padding: isSidebarCollapsed ? "1rem 0" : "1rem 1.5rem",
                 color: "white",
                 textDecoration: "none",
                 borderLeft: isActive(item.href) ? "4px solid #60a5fa" : "4px solid transparent",
@@ -133,6 +182,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 transition: "all 0.3s ease",
                 fontSize: "0.95rem",
                 fontWeight: isActive(item.href) ? "600" : "500",
+                position: "relative",
               }}
               onMouseEnter={(e) => {
                 if (!isActive(item.href)) {
@@ -144,9 +194,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   e.currentTarget.style.backgroundColor = "transparent";
                 }
               }}
+              title={isSidebarCollapsed ? item.label : ""}
             >
               <item.icon size="1.25rem" />
-              <span>{item.label}</span>
+              {!isSidebarCollapsed && <span>{item.label}</span>}
             </Link>
           ))}
         </nav>
@@ -158,7 +209,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             bottom: "2rem",
             left: 0,
             right: 0,
-            padding: "0 1.5rem",
+            padding: isSidebarCollapsed ? "0 1rem" : "0 1.5rem",
+            transition: "padding 0.3s ease",
           }}
         >
           <button
@@ -167,8 +219,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               width: "100%",
               display: "flex",
               alignItems: "center",
+              justifyContent: isSidebarCollapsed ? "center" : "flex-start",
               gap: "0.75rem",
-              padding: "0.75rem 1rem",
+              padding: isSidebarCollapsed ? "0.75rem" : "0.75rem 1rem",
               backgroundColor: "rgba(96, 165, 250, 0.1)",
               color: "#60a5fa",
               border: "1px solid rgba(96, 165, 250, 0.3)",
@@ -184,15 +237,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.1)";
             }}
+            title={isSidebarCollapsed ? "Settings" : ""}
           >
             <FaCog size="1.25rem" />
-            <span>Settings</span>
+            {!isSidebarCollapsed && <span>Settings</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content Area with Header */}
-      <div style={{ marginLeft: "250px", width: "calc(100% - 250px)", display: "flex", flexDirection: "column" }}>
+      <div style={{ 
+        marginLeft: isSidebarCollapsed ? "80px" : "250px", 
+        width: isSidebarCollapsed ? "calc(100% - 80px)" : "calc(100% - 250px)", 
+        display: "flex", 
+        flexDirection: "column",
+        transition: "margin-left 0.3s ease, width 0.3s ease"
+      }}>
         {/* Top Header Bar */}
         <header
           style={{

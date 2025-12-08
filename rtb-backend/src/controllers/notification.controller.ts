@@ -8,7 +8,7 @@ import { markNotificationAsRead, markAllAsRead, deleteNotification } from "../ut
 const notificationRepository = AppDataSource.getRepository(Notification);
 
 // Get all notifications for current user
-export const getMyNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMyNotifications = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const userId = req.user?.id;
     const page = parseInt(req.query.page as string) || 1;
@@ -32,7 +32,7 @@ export const getMyNotifications = async (req: AuthRequest, res: Response): Promi
       where: { userId, isRead: false },
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: notifications,
       pagination: {
@@ -45,12 +45,12 @@ export const getMyNotifications = async (req: AuthRequest, res: Response): Promi
     });
   } catch (error: any) {
     console.error("Get notifications error:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch notifications" });
+    return res.status(500).json({ success: false, message: "Failed to fetch notifications" });
   }
 };
 
 // Get unread count
-export const getUnreadCount = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getUnreadCount = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const userId = req.user?.id;
 
@@ -58,18 +58,18 @@ export const getUnreadCount = async (req: AuthRequest, res: Response): Promise<v
       where: { userId, isRead: false },
     });
 
-    res.json({
+    return res.json({
       success: true,
       count,
     });
   } catch (error: any) {
     console.error("Get unread count error:", error);
-    res.status(500).json({ success: false, message: "Failed to get unread count" });
+    return res.status(500).json({ success: false, message: "Failed to get unread count" });
   }
 };
 
 // Mark notification as read
-export const markAsRead = async (req: AuthRequest, res: Response): Promise<void> => {
+export const markAsRead = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const userId = req.user?.id;
@@ -79,41 +79,40 @@ export const markAsRead = async (req: AuthRequest, res: Response): Promise<void>
     });
 
     if (!notification) {
-      res.status(404).json({ success: false, message: "Notification not found" });
-      return;
+      return res.status(404).json({ success: false, message: "Notification not found" });
     }
 
     await markNotificationAsRead(id);
 
-    res.json({
+    return res.json({
       success: true,
       message: "Notification marked as read",
     });
   } catch (error: any) {
     console.error("Mark as read error:", error);
-    res.status(500).json({ success: false, message: "Failed to mark notification as read" });
+    return res.status(500).json({ success: false, message: "Failed to mark notification as read" });
   }
 };
 
 // Mark all notifications as read
-export const markAllRead = async (req: AuthRequest, res: Response): Promise<void> => {
+export const markAllRead = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const userId = req.user?.id;
 
     await markAllAsRead(userId!);
 
-    res.json({
+    return res.json({
       success: true,
       message: "All notifications marked as read",
     });
   } catch (error: any) {
     console.error("Mark all as read error:", error);
-    res.status(500).json({ success: false, message: "Failed to mark all as read" });
+    return res.status(500).json({ success: false, message: "Failed to mark all as read" });
   }
 };
 
 // Delete notification
-export const removeNotification = async (req: AuthRequest, res: Response): Promise<void> => {
+export const removeNotification = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const userId = req.user?.id;
@@ -123,24 +122,23 @@ export const removeNotification = async (req: AuthRequest, res: Response): Promi
     });
 
     if (!notification) {
-      res.status(404).json({ success: false, message: "Notification not found" });
-      return;
+      return res.status(404).json({ success: false, message: "Notification not found" });
     }
 
     await deleteNotification(id);
 
-    res.json({
+    return res.json({
       success: true,
       message: "Notification deleted",
     });
   } catch (error: any) {
     console.error("Delete notification error:", error);
-    res.status(500).json({ success: false, message: "Failed to delete notification" });
+    return res.status(500).json({ success: false, message: "Failed to delete notification" });
   }
 };
 
 // Delete all read notifications
-export const clearReadNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
+export const clearReadNotifications = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const userId = req.user?.id;
 
@@ -149,12 +147,12 @@ export const clearReadNotifications = async (req: AuthRequest, res: Response): P
       isRead: true,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Read notifications cleared",
     });
   } catch (error: any) {
     console.error("Clear notifications error:", error);
-    res.status(500).json({ success: false, message: "Failed to clear notifications" });
+    return res.status(500).json({ success: false, message: "Failed to clear notifications" });
   }
 };
