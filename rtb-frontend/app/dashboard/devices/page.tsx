@@ -263,7 +263,7 @@ export default function DevicesPage() {
   const handleAddDevice = async () => {
     try {
       // Prepare device data and remove empty schoolCode
-      const deviceData = { ...newDevice };
+      const deviceData: any = { ...newDevice };
       if (!deviceData.schoolCode || deviceData.schoolCode === "") {
         delete deviceData.schoolCode;
       }
@@ -300,7 +300,7 @@ export default function DevicesPage() {
 
     try {
       // Prepare device data and remove empty fields
-      const deviceData = { ...newDevice };
+      const deviceData: any = { ...newDevice };
       if (!deviceData.schoolCode || deviceData.schoolCode === "") {
         deviceData.schoolCode = undefined as any;
       }

@@ -261,7 +261,6 @@ TSS003,Northern Technical School,TSS,Northern,Gicumbi,Rukomo,,,northern@tss.rw,+
         email: newSchool.email || undefined,
         phoneNumber: newSchool.phoneNumber || undefined,
         address: newSchool.address || undefined,
-        representativeId: newSchool.representativeId || undefined,
       });
 
       if (response.data.success) {
@@ -278,7 +277,7 @@ TSS003,Northern Technical School,TSS,Northern,Gicumbi,Rukomo,,,northern@tss.rw,+
           email: "",
           phoneNumber: "",
           address: "",
-          representativeId: "",
+          representativeEmail: "",
           status: "Active",
         });
         fetchSchools();
@@ -935,7 +934,7 @@ TSS003,Northern Technical School,TSS,Northern,Gicumbi,Rukomo,,,northern@tss.rw,+
                         email: "",
                         phoneNumber: "",
                         address: "",
-                        representativeId: "",
+                        representativeEmail: "",
                         status: "Active",
                       });
                     }}

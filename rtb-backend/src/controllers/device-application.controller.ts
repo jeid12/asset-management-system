@@ -10,12 +10,9 @@ import { validateDto } from "../utils/validator.util";
 import {
   CreateDeviceApplicationDto,
   ReviewApplicationDto,
-  UpdateEligibilityDto,
   AssignDevicesDto,
-  ConfirmReceiptDto,
 } from "../dtos/device-application.dto";
 import fs from "fs";
-import path from "path";
 
 const applicationRepository = AppDataSource.getRepository(DeviceApplication);
 const schoolRepository = AppDataSource.getRepository(School);
@@ -29,8 +26,8 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
 
     // Validate DTO
     const errors = await validateDto(CreateDeviceApplicationDto, req.body);
-    if (errors.length > 0) {
-      res.status(400).json({ message: "Validation failed", errors });
+    if (!errors.isValid) {
+      res.status(400).json({ message: "Validation failed", errors: errors.errors });
       return;
     }
 
@@ -347,8 +344,8 @@ export const reviewApplication = async (req: AuthRequest, res: Response): Promis
     const userId = req.user?.id;
 
     const errors = await validateDto(ReviewApplicationDto, req.body);
-    if (errors.length > 0) {
-      res.status(400).json({ message: "Validation failed", errors });
+    if (!errors.isValid) {
+      res.status(400).json({ message: "Validation failed", errors: errors.errors });
       return;
     }
 
@@ -442,8 +439,8 @@ export const assignDevices = async (req: AuthRequest, res: Response): Promise<vo
     const userId = req.user?.id;
 
     const errors = await validateDto(AssignDevicesDto, req.body);
-    if (errors.length > 0) {
-      res.status(400).json({ message: "Validation failed", errors });
+    if (!errors.isValid) {
+      res.status(400).json({ message: "Validation failed", errors: errors.errors });
       return;
     }
 

@@ -195,7 +195,8 @@ export const createSchool = async (req: Request, res: Response): Promise<Respons
       ...schoolData,
       representativeId
     });
-    const savedSchool = await schoolRepository.save(school);
+    const savedSchools = await schoolRepository.save(school);
+    const savedSchool = Array.isArray(savedSchools) ? savedSchools[0] : savedSchools;
 
     // Fetch with representative details
     const schoolWithRelations = await schoolRepository.findOne({

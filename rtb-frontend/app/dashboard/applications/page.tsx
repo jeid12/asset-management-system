@@ -301,7 +301,9 @@ export default function ApplicationsPage() {
               border: "1px solid #E5E7EB",
             }}
           >
-            <FaFileUpload size={48} style={{ color: "#9CA3AF", marginBottom: "16px" }} />
+            <div style={{ color: "#9CA3AF", marginBottom: "16px" }}>
+              <FaFileUpload size={48} />
+            </div>
             <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>No Applications Yet</h3>
             <p style={{ color: "#6B7280", marginBottom: "16px" }}>
               Start by submitting your first device application

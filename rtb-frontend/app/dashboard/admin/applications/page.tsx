@@ -321,15 +321,18 @@ export default function ManageApplicationsPage() {
         >
           <div style={{ flex: 1, minWidth: "250px" }}>
             <div style={{ position: "relative" }}>
-              <FaSearch
-                style={{
-                  position: "absolute",
-                  left: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#9CA3AF",
-                }}
-              />
+              <div style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#9CA3AF",
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "center"
+              }}>
+                <FaSearch />
+              </div>
               <input
                 type="text"
                 placeholder="Search by school name, code, district, or applicant..."
@@ -1139,15 +1142,18 @@ export default function ManageApplicationsPage() {
                     Search Devices
                   </label>
                   <div style={{ position: "relative" }}>
-                    <FaSearch
-                      style={{
-                        position: "absolute",
-                        left: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#9CA3AF",
-                      }}
-                    />
+                    <div style={{
+                      position: "absolute",
+                      left: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#9CA3AF",
+                      pointerEvents: "none",
+                      display: "flex",
+                      alignItems: "center"
+                    }}>
+                      <FaSearch />
+                    </div>
                     <input
                       type="text"
                       placeholder="Search by serial number, brand, or model..."

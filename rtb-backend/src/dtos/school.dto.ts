@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsEmail, IsUUID, Length, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsEmail, Length, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateSchoolDto {

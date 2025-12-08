@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { 
   FaLaptop, FaDesktop, FaTablet, FaProjectDiagram, FaBox,
   FaUsers, FaUserTie, FaSchool, FaChartBar, FaExclamationTriangle,
-  FaTools, FaCheckCircle, FaClock, FaMapMarkerAlt, FaWrench
+  FaTools, FaCheckCircle, FaClock, FaMapMarkerAlt, FaWrench, FaTasks
 } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import apiClient from "@/app/utils/api";
@@ -147,7 +147,9 @@ const DashboardPage = () => {
           border: "1px solid #fecaca",
           textAlign: "center"
         }}>
-          <FaExclamationTriangle size={40} style={{ marginBottom: "1rem" }} />
+          <div style={{ marginBottom: "1rem" }}>
+            <FaExclamationTriangle size={40} />
+          </div>
           <h3>Error Loading Dashboard</h3>
           <p>{error}</p>
         </div>

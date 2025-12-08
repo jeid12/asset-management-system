@@ -1,5 +1,5 @@
 // src/dtos/device-application.dto.ts
-import { IsString, IsInt, IsOptional, Min, IsEnum, IsUUID } from "class-validator";
+import { IsString, IsInt, IsOptional, Min, IsEnum } from "class-validator";
 
 export class CreateDeviceApplicationDto {
   @IsString()

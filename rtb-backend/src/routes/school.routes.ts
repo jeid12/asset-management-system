@@ -85,7 +85,7 @@ router.get('/', authenticate, getSchools);
  *       500:
  *         description: Server error
  */
-router.get('/stats', authenticate, requireRole('admin', 'rtb-staff'), getSchoolStats);
+router.get('/stats', authenticate, requireRole(['admin', 'rtb-staff']), getSchoolStats);
 
 /**
  * @swagger
@@ -194,7 +194,7 @@ router.get('/:schoolId', authenticate, getSchoolById);
  *       500:
  *         description: Server error
  */
-router.post('/', authenticate, requireRole('admin', 'rtb-staff'), createSchool);
+router.post('/', authenticate, requireRole(['admin', 'rtb-staff']), createSchool);
 
 /**
  * @swagger
@@ -264,7 +264,7 @@ router.post('/', authenticate, requireRole('admin', 'rtb-staff'), createSchool);
  *       500:
  *         description: Server error
  */
-router.post('/bulk', authenticate, requireRole('admin', 'rtb-staff'), bulkCreateSchools);
+router.post('/bulk', authenticate, requireRole(['admin', 'rtb-staff']), bulkCreateSchools);
 
 /**
  * @swagger
@@ -359,6 +359,6 @@ router.patch('/:schoolId', authenticate, updateSchool);
  *       500:
  *         description: Server error
  */
-router.delete('/:schoolId', authenticate, requireRole('admin', 'rtb-staff'), deleteSchool);
+router.delete('/:schoolId', authenticate, requireRole(['admin', 'rtb-staff']), deleteSchool);
 
 export default router;
