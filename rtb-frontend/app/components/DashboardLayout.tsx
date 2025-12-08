@@ -1,11 +1,23 @@
 // app/components/DashboardLayout.tsx
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaSignOutAlt, FaHome } from "react-icons/fa";
-import { logout } from "@/app/utils/auth";
+import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome, FaSchool, FaClipboardList } from "react-icons/fa";
+import SettingsModal from "../dashboard/SettingsModal";
+import apiClient from "@/app/utils/api";
+
+interface User {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  gender?: string;
+  profilePicture?: string;
+}
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -13,11 +25,43 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const [showSettings, setShowSettings] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  useEffect(() => {
+    // Fetch current user profile
+    const fetchUser = async () => {
+      try {
+        const response = await apiClient.get("/profile/me");
+        setCurrentUser(response.data.user);
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+  };
+
+  // Conditionally show Users and Schools links based on role
   const navigationItems = [
     { label: "Dashboard", href: "/dashboard", icon: FaHome },
     { label: "Devices", href: "/dashboard/devices", icon: FaLaptop },
-    { label: "Users", href: "/dashboard/users", icon: FaUsers },
+    ...(currentUser?.role === "admin" || currentUser?.role === "rtb-staff" 
+      ? [
+          { label: "Users", href: "/dashboard/users", icon: FaUsers },
+          { label: "Schools", href: "/dashboard/schools", icon: FaSchool },
+          { label: "Applications", href: "/dashboard/admin/applications", icon: FaClipboardList }
+        ] 
+      : currentUser?.role === "school"
+      ? [
+          { label: "Schools", href: "/dashboard/schools", icon: FaSchool },
+          { label: "My Applications", href: "/dashboard/applications", icon: FaClipboardList }
+        ]
+      : []
+    ),
     { label: "Notifications", href: "/dashboard/notifications", icon: FaBell },
     { label: "Reports", href: "/dashboard/reports", icon: FaFileAlt },
   ];
@@ -45,9 +89,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       >
         {/* Logo/Brand */}
-        <div style={{ padding: "1.5rem 1.5rem", marginBottom: "2rem", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-          <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold" }}>AMS</h2>
-          <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.75rem", opacity: 0.8 }}>Asset Management</p>
+        <div style={{ padding: "1rem 1rem", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", textAlign: "center" }}>
+          <div style={{ 
+            backgroundColor: "white", 
+            borderRadius: "12px", 
+            padding: "0.75rem 1rem", 
+            marginBottom: "0.75rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+          }}>
+            <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "#1e3a8a", letterSpacing: "0.05em" }}>RTB</div>
+            <div style={{ fontSize: "0.5rem", color: "#4B5563", marginTop: "0.15rem", fontWeight: "600" }}>TVET BOARD</div>
+          </div>
+          <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: "700", lineHeight: "1.3", letterSpacing: "0.02em" }}>Rwanda TVET Board</h2>
+          <p style={{ margin: "0.35rem 0 0 0", fontSize: "0.65rem", opacity: 0.9, fontWeight: "500" }}>Asset Management</p>
+          <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.6rem", opacity: 0.7, fontStyle: "italic" }}>rtb.gov.rw</p>
         </div>
 
         {/* Navigation Items */}
@@ -86,7 +145,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           ))}
         </nav>
 
-        {/* Logout Button at Bottom */}
+        {/* Settings Button at Bottom */}
         <div
           style={{
             position: "absolute",
@@ -97,20 +156,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         >
           <button
-            onClick={() => {
-              if (confirm("Are you sure you want to logout?")) {
-                logout();
-              }
-            }}
+            onClick={() => setShowSettings(true)}
             style={{
               width: "100%",
               display: "flex",
               alignItems: "center",
               gap: "0.75rem",
               padding: "0.75rem 1rem",
-              backgroundColor: "rgba(239, 68, 68, 0.1)",
-              color: "#fca5a5",
-              border: "1px solid rgba(239, 68, 68, 0.3)",
+              backgroundColor: "rgba(96, 165, 250, 0.1)",
+              color: "#60a5fa",
+              border: "1px solid rgba(96, 165, 250, 0.3)",
               borderRadius: "8px",
               cursor: "pointer",
               fontSize: "0.95rem",
@@ -118,14 +173,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               transition: "all 0.3s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+              e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.2)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+              e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.1)";
             }}
           >
-            <FaSignOutAlt size="1.25rem" />
-            <span>Logout</span>
+            <FaCog size="1.25rem" />
+            <span>Settings</span>
           </button>
         </div>
       </aside>
@@ -134,6 +189,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <main style={{ marginLeft: "250px", width: "calc(100% - 250px)", padding: "2rem" }}>
         {children}
       </main>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={currentUser}
+        onUserUpdate={handleUserUpdate}
+      />
     </div>
   );
 }

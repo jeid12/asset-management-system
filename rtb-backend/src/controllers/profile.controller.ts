@@ -220,3 +220,32 @@ export const deleteProfilePicture = async (req: AuthRequest, res: Response): Pro
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const deleteProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+
+    const user = await userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Delete profile picture file if exists
+    if (user.profilePicture) {
+      const imagePath = path.join(process.cwd(), user.profilePicture);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // Delete user from database
+    await userRepository.remove(user);
+
+    res.status(200).json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Delete profile error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

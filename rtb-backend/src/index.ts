@@ -9,6 +9,11 @@ import { specs } from "./config/swagger";
 import { AppDataSource } from "./data-source";
 import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
+import userRoutes from "./routes/user.routes";
+import schoolRoutes from "./routes/school.routes";
+import deviceRoutes from "./routes/device.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
+import applicationRoutes from "./routes/device-application.routes";
 
 // Load environment variables
 dotenv.config();
@@ -21,8 +26,8 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || "http://localhost:3000",
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files (uploaded images)
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
@@ -58,6 +63,11 @@ app.get("/", (_req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/schools", schoolRoutes);
+app.use("/api/devices", deviceRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/applications", applicationRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
