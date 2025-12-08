@@ -24,8 +24,18 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
   try {
     const userId = req.user?.id;
 
+    // Convert string numbers to integers from FormData
+    const bodyData = {
+      ...req.body,
+      requestedLaptops: parseInt(req.body.requestedLaptops) || 0,
+      requestedDesktops: parseInt(req.body.requestedDesktops) || 0,
+      requestedTablets: parseInt(req.body.requestedTablets) || 0,
+      requestedProjectors: parseInt(req.body.requestedProjectors) || 0,
+      requestedOthers: parseInt(req.body.requestedOthers) || 0,
+    };
+
     // Validate DTO
-    const errors = await validateDto(CreateDeviceApplicationDto, req.body);
+    const errors = await validateDto(CreateDeviceApplicationDto, bodyData);
     if (!errors.isValid) {
       res.status(400).json({ message: "Validation failed", errors: errors.errors });
       return;
@@ -87,7 +97,7 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
       requestedTablets,
       requestedProjectors,
       requestedOthers,
-    } = req.body;
+    } = bodyData;
 
     // Create application
     const application = applicationRepository.create({
@@ -95,11 +105,11 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
       applicantId: userId!,
       purpose,
       justification,
-      requestedLaptops: parseInt(requestedLaptops) || 0,
-      requestedDesktops: parseInt(requestedDesktops) || 0,
-      requestedTablets: parseInt(requestedTablets) || 0,
-      requestedProjectors: parseInt(requestedProjectors) || 0,
-      requestedOthers: parseInt(requestedOthers) || 0,
+      requestedLaptops,
+      requestedDesktops,
+      requestedTablets,
+      requestedProjectors,
+      requestedOthers,
       letterPath: req.file.path,
       status: "Pending",
     });
