@@ -14,6 +14,9 @@ import schoolRoutes from "./routes/school.routes";
 import deviceRoutes from "./routes/device.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 import applicationRoutes from "./routes/device-application.routes";
+import notificationRoutes from "./routes/notification.routes";
+import auditLogRoutes from "./routes/audit-log.routes";
+import reportRoutes from "./routes/report.routes";
 
 // Load environment variables
 dotenv.config();
@@ -68,6 +71,9 @@ app.use("/api/schools", schoolRoutes);
 app.use("/api/devices", deviceRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
+app.use("/api/reports", reportRoutes);
 
 // Error handling middleware
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

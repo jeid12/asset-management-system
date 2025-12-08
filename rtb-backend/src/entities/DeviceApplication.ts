@@ -53,10 +53,10 @@ export class DeviceApplication {
   // Application Status
   @Column({
     type: "enum",
-    enum: ["Pending", "Under Review", "Approved", "Rejected", "Assigned", "Received"],
+    enum: ["Pending", "Under Review", "Approved", "Rejected", "Assigned", "Received", "Cancelled"],
     default: "Pending"
   })
-  status: "Pending" | "Under Review" | "Approved" | "Rejected" | "Assigned" | "Received";
+  status: "Pending" | "Under Review" | "Approved" | "Rejected" | "Assigned" | "Received" | "Cancelled";
 
   // Review Information
   @Column({ type: "uuid", nullable: true })

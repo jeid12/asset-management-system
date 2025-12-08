@@ -56,6 +56,9 @@ export default function ApplicationsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -73,6 +76,12 @@ export default function ApplicationsPage() {
   useEffect(() => {
     checkUserRole();
   }, []);
+
+  useEffect(() => {
+    if (userRole === "school") {
+      fetchApplications();
+    }
+  }, [page]);
 
   const checkUserRole = async () => {
     try {
@@ -102,12 +111,42 @@ export default function ApplicationsPage() {
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get("/applications/my");
+      const response = await apiClient.get(`/applications/my?page=${page}&limit=10`);
       setApplications(response.data.applications || []);
+      setTotal(response.data.total || 0);
+      setTotalPages(response.data.totalPages || 1);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to fetch applications");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelApplication = async (applicationId: string) => {
+    if (!confirm("Are you sure you want to cancel this application?")) {
+      return;
+    }
+
+    try {
+      await apiClient.put(`/applications/${applicationId}/cancel`);
+      alert("Application cancelled successfully");
+      fetchApplications();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to cancel application");
+    }
+  };
+
+  const handleDeleteApplication = async (applicationId: string) => {
+    if (!confirm("Are you sure you want to delete this application? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/applications/${applicationId}`);
+      alert("Application deleted successfully");
+      fetchApplications();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to delete application");
     }
   };
 
@@ -512,9 +551,94 @@ export default function ApplicationsPage() {
                       Confirm Receipt
                     </button>
                   )}
+
+                  {app.status === "Pending" && (
+                    <button
+                      onClick={() => handleCancelApplication(app.id)}
+                      style={{
+                        backgroundColor: "#F59E0B",
+                        color: "white",
+                        padding: "8px 16px",
+                        borderRadius: "6px",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      <FaTimesCircle size={14} />
+                      Cancel Application
+                    </button>
+                  )}
+
+                  {(app.status === "Cancelled" || app.status === "Rejected") && (
+                    <button
+                      onClick={() => handleDeleteApplication(app.id)}
+                      style={{
+                        backgroundColor: "#EF4444",
+                        color: "white",
+                        padding: "8px 16px",
+                        borderRadius: "6px",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      <FaTimesCircle size={14} />
+                      Delete Application
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && applications.length > 0 && totalPages > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", marginTop: "24px" }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              style={{
+                backgroundColor: page === 1 ? "#E5E7EB" : "#3B82F6",
+                color: page === 1 ? "#9CA3AF" : "white",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: page === 1 ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              Previous
+            </button>
+            <span style={{ color: "#6B7280", fontSize: "14px" }}>
+              Page {page} of {totalPages} ({total} total)
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              style={{
+                backgroundColor: page === totalPages ? "#E5E7EB" : "#3B82F6",
+                color: page === totalPages ? "#9CA3AF" : "white",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                border: "none",
+                cursor: page === totalPages ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              Next
+            </button>
           </div>
         )}
 

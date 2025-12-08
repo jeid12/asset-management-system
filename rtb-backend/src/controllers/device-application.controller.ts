@@ -13,6 +13,7 @@ import {
   AssignDevicesDto,
 } from "../dtos/device-application.dto";
 import fs from "fs";
+import { notifyAdminAndStaff, createNotification } from "../utils/notification.util";
 
 const applicationRepository = AppDataSource.getRepository(DeviceApplication);
 const schoolRepository = AppDataSource.getRepository(School);
@@ -116,6 +117,15 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
 
     await applicationRepository.save(application);
 
+    // Notify admin and staff about new application
+    await notifyAdminAndStaff(
+      "application_submitted",
+      "New Device Application",
+      `${school.schoolName} has submitted a new device application`,
+      { applicationId: application.id, schoolName: school.schoolName },
+      `/dashboard/admin/applications`
+    );
+
     res.status(201).json({
       message: "Application submitted successfully",
       application: {
@@ -133,7 +143,11 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
 // Get all applications (Admin/Staff only)
 export const getAllApplications = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { status, schoolCode } = req.query;
+    const { status, schoolCode, page = "1", limit = "10" } = req.query;
+    
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
     const queryBuilder = applicationRepository
       .createQueryBuilder("application")
@@ -141,7 +155,9 @@ export const getAllApplications = async (req: AuthRequest, res: Response): Promi
       .leftJoinAndSelect("application.applicant", "applicant")
       .leftJoinAndSelect("application.reviewer", "reviewer")
       .leftJoinAndSelect("application.assigner", "assigner")
-      .orderBy("application.createdAt", "DESC");
+      .orderBy("application.createdAt", "DESC")
+      .skip(skip)
+      .take(limitNum);
 
     if (status) {
       queryBuilder.andWhere("application.status = :status", { status });
@@ -151,11 +167,14 @@ export const getAllApplications = async (req: AuthRequest, res: Response): Promi
       queryBuilder.andWhere("school.schoolCode = :schoolCode", { schoolCode });
     }
 
-    const applications = await queryBuilder.getMany();
+    const [applications, total] = await queryBuilder.getManyAndCount();
 
     res.status(200).json({
       success: true,
       count: applications.length,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
       applications: applications.map((app) => ({
         id: app.id,
         school: {
@@ -194,16 +213,26 @@ export const getAllApplications = async (req: AuthRequest, res: Response): Promi
 export const getMyApplications = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
+    const { page = "1", limit = "10" } = req.query;
+    
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
-    const applications = await applicationRepository.find({
+    const [applications, total] = await applicationRepository.findAndCount({
       where: { applicantId: userId },
       relations: ["school", "reviewer", "assigner"],
       order: { createdAt: "DESC" },
+      skip,
+      take: limitNum,
     });
 
     res.status(200).json({
       success: true,
       count: applications.length,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
       applications: applications.map((app) => ({
         id: app.id,
         school: {
@@ -388,6 +417,20 @@ export const reviewApplication = async (req: AuthRequest, res: Response): Promis
 
     await applicationRepository.save(application);
 
+    // Notify the applicant about the review
+    const notificationType = status === "Approved" ? "application_approved" : 
+                            status === "Rejected" ? "application_rejected" : 
+                            "application_reviewed";
+    
+    await createNotification({
+      userId: application.applicantId,
+      type: notificationType,
+      title: `Application ${status}`,
+      message: `Your device application has been ${status.toLowerCase()}. ${reviewNotes || ""}`,
+      metadata: { applicationId: application.id, status },
+      actionUrl: `/dashboard/applications`
+    });
+
     res.status(200).json({
       message: "Application reviewed successfully",
       application: {
@@ -512,6 +555,20 @@ export const assignDevices = async (req: AuthRequest, res: Response): Promise<vo
 
     await applicationRepository.save(application);
 
+    // Notify the applicant that devices have been assigned
+    await createNotification({
+      userId: application.applicantId,
+      type: "devices_assigned",
+      title: "Devices Assigned",
+      message: `${devices.length} device(s) have been assigned to your school. Please confirm receipt once you receive them.`,
+      metadata: { 
+        applicationId: application.id, 
+        deviceCount: devices.length,
+        devices: application.assignedDevices 
+      },
+      actionUrl: `/dashboard/applications`
+    });
+
     res.status(200).json({
       message: "Devices assigned successfully",
       application: {
@@ -560,6 +617,18 @@ export const confirmReceipt = async (req: AuthRequest, res: Response): Promise<v
 
     await applicationRepository.save(application);
 
+    // Notify admin and staff that devices have been received
+    await notifyAdminAndStaff(
+      "devices_received",
+      "Devices Received Confirmation",
+      `School has confirmed receipt of devices for application #${application.id.substring(0, 8)}`,
+      { 
+        applicationId: application.id,
+        confirmedAt: application.confirmedAt 
+      },
+      `/dashboard/admin/applications`
+    );
+
     res.status(200).json({
       message: "Receipt confirmed successfully",
       application: {
@@ -570,6 +639,144 @@ export const confirmReceipt = async (req: AuthRequest, res: Response): Promise<v
     });
   } catch (error) {
     console.error("Confirm receipt error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Cancel application (School users only - before review)
+export const cancelApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const application = await applicationRepository.findOne({
+      where: { id },
+      relations: ["applicant", "school"],
+    });
+
+    if (!application) {
+      res.status(404).json({ message: "Application not found" });
+      return;
+    }
+
+    // Only applicant or school staff from same school can cancel
+    const user = await userRepository.findOne({
+      where: { id: userId },
+      relations: ["school"],
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Check if user has permission to cancel
+    const canCancel = 
+      application.applicant.id === userId || 
+      ((user as any).school && application.school.id === (user as any).school.id);
+
+    if (!canCancel) {
+      res.status(403).json({ message: "Not authorized to cancel this application" });
+      return;
+    }
+
+    // Can only cancel pending applications
+    if (application.status !== "Pending") {
+      res.status(400).json({ 
+        message: `Cannot cancel application with status: ${application.status}` 
+      });
+      return;
+    }
+
+    application.status = "Cancelled";
+    await applicationRepository.save(application);
+
+    // Notify admin and staff about cancellation
+    await notifyAdminAndStaff(
+      "system_alert",
+      "Application Cancelled",
+      `${user.fullName} cancelled application #${application.id.substring(0, 8)} from ${application.school.schoolName}`,
+      { 
+        applicationId: application.id,
+        schoolCode: application.school.schoolCode,
+        cancelledBy: user.fullName
+      },
+      `/dashboard/admin/applications`
+    );
+
+    res.status(200).json({
+      message: "Application cancelled successfully",
+      application: {
+        id: application.id,
+        status: application.status,
+      },
+    });
+  } catch (error) {
+    console.error("Cancel application error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Delete application (School users only - cancelled or rejected applications)
+export const deleteApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const application = await applicationRepository.findOne({
+      where: { id },
+      relations: ["applicant", "school"],
+    });
+
+    if (!application) {
+      res.status(404).json({ message: "Application not found" });
+      return;
+    }
+
+    // Only applicant or school staff from same school can delete
+    const user = await userRepository.findOne({
+      where: { id: userId },
+      relations: ["school"],
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Check if user has permission to delete
+    const canDelete = 
+      application.applicant.id === userId || 
+      ((user as any).school && application.school.id === (user as any).school.id);
+
+    if (!canDelete) {
+      res.status(403).json({ message: "Not authorized to delete this application" });
+      return;
+    }
+
+    // Can only delete cancelled or rejected applications
+    if (!["Cancelled", "Rejected"].includes(application.status)) {
+      res.status(400).json({ 
+        message: `Cannot delete application with status: ${application.status}. Only cancelled or rejected applications can be deleted.` 
+      });
+      return;
+    }
+
+    // Delete application file if exists
+    if (application.letterPath) {
+      const filePath = application.letterPath;
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await applicationRepository.remove(application);
+
+    res.status(200).json({
+      message: "Application deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete application error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

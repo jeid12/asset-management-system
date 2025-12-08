@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
+import { APP_NAME, APP_DESCRIPTION } from "./config/constants";
 
 
 const geistSans = Geist({
@@ -15,8 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RTB Asset Management System | Rwanda TVET Board",
-  description: "Asset Management System for Rwanda TVET Board - Manage devices, schools, and applications",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
+  icons: {
+    icon: "/images/logo.ico",
+  },
 };
 
 export default function RootLayout({

@@ -122,14 +122,22 @@ export default function LoginPage() {
       <div className="relative z-10 bg-white bg-opacity-95 p-8 rounded-lg border border-blue-200 shadow-xl w-full max-w-md mx-4">
         <div className="flex flex-col items-center mb-6">
           <div style={{ 
-            backgroundColor: "#1e3a8a", 
+            backgroundColor: "white", 
             borderRadius: "16px", 
-            padding: "1.25rem 1.75rem", 
+            padding: "0.75rem", 
             marginBottom: "1rem",
-            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.3)"
+            width: "90px",
+            height: "90px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.2)"
           }}>
-            <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "white", letterSpacing: "0.05em" }}>RTB</div>
-            <div style={{ fontSize: "0.65rem", color: "#93C5FD", marginTop: "0.25rem", fontWeight: "600", textAlign: "center" }}>TVET BOARD</div>
+            <img 
+              src="/images/logo.jpg" 
+              alt="Rwanda TVET Board" 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
           <h1 className="text-2xl font-bold text-blue-900 tracking-wide mb-1">Rwanda TVET Board</h1>
           <p className="text-sm text-gray-600 font-medium">Asset Management System</p>

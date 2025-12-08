@@ -10,6 +10,8 @@ import {
   updateEligibility,
   assignDevices,
   confirmReceipt,
+  cancelApplication,
+  deleteApplication,
 } from "../controllers/device-application.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { requireRole } from "../middlewares/role.middleware";
@@ -143,5 +145,25 @@ router.post("/:id/assign", requireRole(["admin", "rtb-staff"]), assignDevices);
  *     summary: Confirm receipt of devices (School users only)
  */
 router.post("/:id/confirm", requireRole(["school"]), confirmReceipt);
+
+/**
+ * @swagger
+ * /api/applications/{id}/cancel:
+ *   put:
+ *     tags:
+ *       - Device Applications
+ *     summary: Cancel application (School users only - pending applications)
+ */
+router.put("/:id/cancel", requireRole(["school"]), cancelApplication);
+
+/**
+ * @swagger
+ * /api/applications/{id}:
+ *   delete:
+ *     tags:
+ *       - Device Applications
+ *     summary: Delete application (School users only - cancelled or rejected applications)
+ */
+router.delete("/:id", requireRole(["school"]), deleteApplication);
 
 export default router;
