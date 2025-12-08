@@ -11,13 +11,25 @@ export default function LandingPage() {
       {/* Header */}
       <header className="flex justify-between items-center px-8 py-4 bg-white/90 backdrop-blur-md shadow-md">
         <div className="flex items-center gap-3">
-          <Image
-            src="/rtb-logo.png"
-            alt="RTB Logo"
-            width={150}
-            height={150}
-            className="rounded-lg"
-          />
+          <div style={{ 
+            backgroundColor: "#1e3a8a", 
+            borderRadius: "16px", 
+            padding: "0.85rem 1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.2)"
+          }}>
+            <div style={{ fontSize: "2rem", fontWeight: "bold", color: "white", letterSpacing: "0.05em" }}>RTB</div>
+            <div style={{ fontSize: "0.5rem", color: "#93C5FD", marginTop: "0.15rem", fontWeight: "600" }}>TVET BOARD</div>
+          </div>
+          <div>
+            <h1 style={{ fontSize: "1.15rem", fontWeight: "700", color: "#1e3a8a", margin: 0, letterSpacing: "0.02em" }}>
+              Rwanda TVET Board
+            </h1>
+            <p style={{ fontSize: "0.75rem", color: "#6B7280", margin: 0 }}>Asset Management System</p>
+            <p style={{ fontSize: "0.65rem", color: "#9CA3AF", margin: 0, fontStyle: "italic" }}>rtb.gov.rw</p>
+          </div>
         </div>
         <Link href="/login">
           <MDBBtn color="primary">Login</MDBBtn>
@@ -35,7 +47,7 @@ export default function LandingPage() {
 
         >
                     <h2 className="text-2xl font-bold tracking-wide">
-             Welcome to RTB Asset Management System
+             Welcome to Rwanda TVET Board Asset Management System
           </h2>
           <h2 className="text-4xl md:text-6xl font-extrabold leading-snug">
             Manage Your Assets <br />
@@ -44,8 +56,8 @@ export default function LandingPage() {
             </span>
           </h2>
           <p className="text-lg text-zinc-600 max-w-lg">
-            The RTB Asset Management System helps track laptops, projectors, and
-            other digital devices across schools. Get real-time data, reports,
+            The Rwanda TVET Board Asset Management System helps track laptops, projectors, and
+            other digital devices across TVET schools. Get real-time data, reports,
             and streamlined management.
           </p>
           <Link href="/login">
@@ -74,7 +86,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="p-4 text-center text-sm text-zinc-500 border-t border-zinc-200">
-        © {new Date().getFullYear()} Rwanda TVET Board — All Rights Reserved
+        © {new Date().getFullYear()} Rwanda TVET Board (RTB) — All Rights Reserved | rtb.gov.rw
       </footer>
     </div>
   );

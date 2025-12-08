@@ -118,12 +118,23 @@ export default function ForgotPasswordPage() {
       <div className="relative z-10 bg-white bg-opacity-95 p-8 rounded-lg border border-blue-200 shadow-xl w-[420px]">
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-5">
-          <h1 className="text-4xl font-bold text-blue-900 tracking-wide mb-1" style={{ letterSpacing: "0.05em" }}>
-            AMS
+          <div style={{ 
+            backgroundColor: "#1e3a8a", 
+            borderRadius: "16px", 
+            padding: "1.25rem 1.75rem", 
+            marginBottom: "1rem",
+            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.3)"
+          }}>
+            <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "white", letterSpacing: "0.05em" }}>RTB</div>
+            <div style={{ fontSize: "0.65rem", color: "#93C5FD", marginTop: "0.25rem", fontWeight: "600", textAlign: "center" }}>TVET BOARD</div>
+          </div>
+          <h1 className="text-xl font-bold text-blue-900 tracking-wide mb-1">
+            Rwanda TVET Board
           </h1>
-          <p className="text-sm text-gray-600 font-normal">
+          <p className="text-sm text-gray-600 font-medium">
             Asset Management System
           </p>
+          <p className="text-xs text-gray-500 mt-1">rtb.gov.rw</p>
         </div>
 
         {/* Step 1: Enter Email */}
