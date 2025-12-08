@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaLaptop, FaUsers, FaBell, FaFileAlt, FaCog, FaHome, FaSchool, FaClipboardList } from "react-icons/fa";
 import SettingsModal from "../dashboard/SettingsModal";
+import NotificationBell from "./NotificationBell";
 import apiClient from "@/app/utils/api";
 
 interface User {
@@ -185,10 +186,42 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main style={{ marginLeft: "250px", width: "calc(100% - 250px)", padding: "2rem" }}>
-        {children}
-      </main>
+      {/* Main Content Area with Header */}
+      <div style={{ marginLeft: "250px", width: "calc(100% - 250px)", display: "flex", flexDirection: "column" }}>
+        {/* Top Header Bar */}
+        <header
+          style={{
+            background: "white",
+            borderBottom: "1px solid #E5E7EB",
+            padding: "1rem 2rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          <div>
+            <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "700", color: "#111827" }}>
+              {currentUser?.role === "admin" && "Admin Dashboard"}
+              {currentUser?.role === "rtb-staff" && "Staff Dashboard"}
+              {currentUser?.role === "headteacher" && "Headteacher Dashboard"}
+              {currentUser?.role === "school-staff" && "School Staff Dashboard"}
+            </h1>
+            <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.875rem", color: "#6B7280" }}>
+              Welcome back, {currentUser?.fullName || "User"}
+            </p>
+          </div>
+          <NotificationBell />
+        </header>
+
+        {/* Main Content */}
+        <main style={{ padding: "2rem", flex: 1 }}>
+          {children}
+        </main>
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal
