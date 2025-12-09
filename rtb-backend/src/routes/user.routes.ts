@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireAdmin } from '../middlewares/role.middleware';
+import { auditMiddleware } from '../middlewares/audit.middleware';
 import { 
   getUsers, 
   getUserById,
@@ -185,7 +186,17 @@ router.get('/stats', authenticate, requireAdmin, getUserStats);
  *       500:
  *         description: Server error
  */
-router.post('/', authenticate, requireAdmin, createUser);
+router.post(
+  '/',
+  authenticate,
+  requireAdmin,
+  auditMiddleware("CREATE", "User", {
+    getTargetName: (req) => req.body?.fullName,
+    getDescription: (req) => `Created user: ${req.body?.username}`,
+    captureRequestBody: true,
+  }),
+  createUser
+);
 
 /**
  * @swagger
@@ -239,7 +250,16 @@ router.post('/', authenticate, requireAdmin, createUser);
  *       500:
  *         description: Server error
  */
-router.post('/bulk', authenticate, requireAdmin, bulkCreateUsers);
+router.post(
+  '/bulk',
+  authenticate,
+  requireAdmin,
+  auditMiddleware("CREATE", "User", {
+    getDescription: (req) => `Bulk created ${req.body?.users?.length || 0} users`,
+    captureRequestBody: true,
+  }),
+  bulkCreateUsers
+);
 
 /**
  * @swagger
@@ -346,7 +366,17 @@ router.get('/:userId', authenticate, requireAdmin, getUserById);
  *       500:
  *         description: Server error
  */
-router.patch('/:userId/role', authenticate, requireAdmin, updateUserRole);
+router.patch(
+  '/:userId/role',
+  authenticate,
+  requireAdmin,
+  auditMiddleware("UPDATE", "User", {
+    getTargetId: (req) => req.params?.userId,
+    getDescription: (req) => `Updated role for user ${req.params?.userId} to ${req.body?.role}`,
+    captureRequestBody: true,
+  }),
+  updateUserRole
+);
 
 /**
  * @swagger
@@ -387,6 +417,15 @@ router.patch('/:userId/role', authenticate, requireAdmin, updateUserRole);
  *       500:
  *         description: Server error
  */
-router.delete('/:userId', authenticate, requireAdmin, deleteUser);
+router.delete(
+  '/:userId',
+  authenticate,
+  requireAdmin,
+  auditMiddleware("DELETE", "User", {
+    getTargetId: (req) => req.params?.userId,
+    getDescription: (req) => `Deleted user: ${req.params?.userId}`,
+  }),
+  deleteUser
+);
 
 export default router;

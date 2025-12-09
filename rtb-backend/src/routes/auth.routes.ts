@@ -2,6 +2,7 @@
 import { Router } from "express";
 import { register, login, verifyOtp, resendOtp, forgotPassword, resetPassword, logout } from "../controllers/auth.controller";
 import { authenticate } from "../middlewares/auth.middleware";
+import { auditMiddleware } from "../middlewares/audit.middleware";
 
 const router = Router();
 
@@ -71,7 +72,14 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/register", register);
+router.post(
+  "/register",
+  auditMiddleware("CREATE", "User", {
+    getTargetName: (req) => req.body?.fullName,
+    getDescription: (req) => `User registered: ${req.body?.username}`,
+  }),
+  register
+);
 
 /**
  * @swagger
@@ -112,7 +120,14 @@ router.post("/register", register);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/login", login);
+router.post(
+  "/login",
+  auditMiddleware("LOGIN", "User", {
+    getTargetName: (req) => req.body?.username,
+    getDescription: (req) => `User login attempt: ${req.body?.username}`,
+  }),
+  login
+);
 
 /**
  * @swagger
@@ -319,6 +334,13 @@ router.post("/reset-password", resetPassword);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/logout", authenticate, logout);
+router.post(
+  "/logout",
+  authenticate,
+  auditMiddleware("LOGOUT", "User", {
+    getDescription: (req) => `User logged out`,
+  }),
+  logout
+);
 
 export default router;

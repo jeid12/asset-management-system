@@ -11,6 +11,7 @@ import {
 } from "../controllers/device.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { requireAdmin } from "../middlewares/role.middleware";
+import { auditMiddleware } from "../middlewares/audit.middleware";
 
 const router = Router();
 
@@ -217,7 +218,18 @@ router.get("/:id", authenticate, getDeviceById);
  *       400:
  *         description: Validation error
  */
-router.post("/", authenticate, requireAdmin, createDevice);
+router.post(
+  "/",
+  authenticate,
+  requireAdmin,
+  auditMiddleware("CREATE", "Device", {
+    getTargetId: (req) => req.body?.serialNumber,
+    getTargetName: (req) => `${req.body?.brand} ${req.body?.model}`,
+    getDescription: (req) => `Created new device: ${req.body?.serialNumber}`,
+    captureRequestBody: true,
+  }),
+  createDevice
+);
 
 /**
  * @swagger
@@ -261,7 +273,16 @@ router.post("/", authenticate, requireAdmin, createDevice);
  *       200:
  *         description: Bulk create completed
  */
-router.post("/bulk", authenticate, requireAdmin, bulkCreateDevices);
+router.post(
+  "/bulk",
+  authenticate,
+  requireAdmin,
+  auditMiddleware("CREATE", "Device", {
+    getDescription: (req) => `Bulk created ${req.body?.devices?.length || 0} devices`,
+    captureRequestBody: true,
+  }),
+  bulkCreateDevices
+);
 
 /**
  * @swagger
@@ -293,7 +314,16 @@ router.post("/bulk", authenticate, requireAdmin, bulkCreateDevices);
  *       200:
  *         description: Bulk assign completed
  */
-router.post("/bulk-assign", authenticate, requireAdmin, bulkAssignDevices);
+router.post(
+  "/bulk-assign",
+  authenticate,
+  requireAdmin,
+  auditMiddleware("UPDATE", "Device", {
+    getDescription: (req) => `Bulk assigned ${req.body?.serialNumbers?.length || 0} devices to school ${req.body?.schoolCode}`,
+    captureRequestBody: true,
+  }),
+  bulkAssignDevices
+);
 
 /**
  * @swagger
@@ -340,7 +370,17 @@ router.post("/bulk-assign", authenticate, requireAdmin, bulkAssignDevices);
  *       404:
  *         description: Device not found
  */
-router.put("/:id", authenticate, requireAdmin, updateDevice);
+router.put(
+  "/:id",
+  authenticate,
+  requireAdmin,
+  auditMiddleware("UPDATE", "Device", {
+    getTargetId: (req) => req.params?.id,
+    getDescription: (req) => `Updated device: ${req.params?.id}`,
+    captureRequestBody: true,
+  }),
+  updateDevice
+);
 
 /**
  * @swagger
@@ -362,6 +402,15 @@ router.put("/:id", authenticate, requireAdmin, updateDevice);
  *       404:
  *         description: Device not found
  */
-router.delete("/:id", authenticate, requireAdmin, deleteDevice);
+router.delete(
+  "/:id",
+  authenticate,
+  requireAdmin,
+  auditMiddleware("DELETE", "Device", {
+    getTargetId: (req) => req.params?.id,
+    getDescription: (req) => `Deleted device: ${req.params?.id}`,
+  }),
+  deleteDevice
+);
 
 export default router;
