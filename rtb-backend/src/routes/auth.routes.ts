@@ -338,7 +338,7 @@ router.post(
   "/logout",
   authenticate,
   auditMiddleware("LOGOUT", "User", {
-    getDescription: (req) => `User logged out`,
+    getDescription: () => `User logged out`,
   }),
   logout
 );
