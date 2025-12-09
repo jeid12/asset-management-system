@@ -10,6 +10,8 @@ import { sendWelcomeEmail, sendResetPasswordEmail, sendOtpEmail } from "../utils
 import { tokenBlacklist } from "../utils/tokenBlacklist.util";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { createOtpForUser, verifyOtpForUser } from "../utils/otp.util";
+import { createSession, endSession } from "../utils/session.util";
+import { getClientIp } from "../middlewares/audit.middleware";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -292,9 +294,14 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
       role: user.role,
     });
 
+    // Create session for tracking time spent
+    const ipAddress = getClientIp(req);
+    const sessionId = createSession(user.id, ipAddress);
+
     res.status(200).json({
       message: "Login successful",
       token,
+      sessionId,
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -319,6 +326,12 @@ export const logout = async (req: AuthRequest, res: Response): Promise<void> => 
     if (!token) {
       res.status(400).json({ message: "No token provided" });
       return;
+    }
+
+    // End session if sessionId is provided
+    const sessionId = req.body.sessionId || req.headers['x-session-id'];
+    if (sessionId) {
+      await endSession(sessionId as string);
     }
 
     // Get the decoded token to access expiration time

@@ -120,6 +120,32 @@ export class AuditLog {
   @Column({ type: "varchar", length: 500, nullable: true })
   endpoint?: string;
 
+  // Location Information
+  @Column({ type: "varchar", length: 100, nullable: true })
+  country?: string;
+
+  @Column({ type: "varchar", length: 100, nullable: true })
+  city?: string;
+
+  @Column({ type: "varchar", length: 100, nullable: true })
+  region?: string;
+
+  @Column({ type: "varchar", length: 50, nullable: true })
+  timezone?: string;
+
+  // Session Tracking
+  @Column({ type: "uuid", nullable: true })
+  sessionId?: string;
+
+  @Column({ type: "timestamp", nullable: true })
+  sessionStart?: Date;
+
+  @Column({ type: "timestamp", nullable: true })
+  sessionEnd?: Date;
+
+  @Column({ type: "int", nullable: true })
+  sessionDuration?: number; // in seconds
+
   // Performance Metrics
   @Column({ type: "int", nullable: true })
   executionDuration?: number; // in milliseconds
