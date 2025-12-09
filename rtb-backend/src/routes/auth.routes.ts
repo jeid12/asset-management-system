@@ -1,6 +1,6 @@
 // src/routes/auth.routes.ts
 import { Router } from "express";
-import { register, login, verifyOtp, resendOtp, forgotPassword, resetPassword, logout } from "../controllers/auth.controller";
+import { register, login, verifyOtp, resendOtp, forgotPassword, verifyResetOtp, resetPassword, logout } from "../controllers/auth.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { auditMiddleware } from "../middlewares/audit.middleware";
 
@@ -254,18 +254,68 @@ router.post("/forgot-password", forgotPassword);
 
 /**
  * @swagger
- * /api/auth/reset-password:
+ * /api/auth/verify-reset-otp:
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Reset password with token
- *     description: Reset user password using the reset token from email
+ *     summary: Verify password reset OTP
+ *     description: Verify the OTP sent to user's email for password reset
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/ResetPasswordRequest'
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *                 pattern: ^[0-9]{6}$
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ *       400:
+ *         description: Invalid or expired OTP
+ *       500:
+ *         description: Server error
+ */
+router.post("/verify-reset-otp", verifyResetOtp);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Reset password with OTP or token
+ *     description: Reset user password using OTP or reset token from email
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             oneOf:
+ *               - type: object
+ *                 required:
+ *                   - email
+ *                   - otp
+ *                   - newPassword
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                   otp:
+ *                     type: string
+ *                     pattern: ^[0-9]{6}$
+ *                   newPassword:
+ *                     type: string
+ *                     minLength: 8
+ *               - $ref: '#/components/schemas/ResetPasswordRequest'
  *     responses:
  *       200:
  *         description: Password reset successfully
@@ -279,7 +329,7 @@ router.post("/forgot-password", forgotPassword);
  *                 message:
  *                   type: string
  *       400:
- *         description: Invalid or expired token
+ *         description: Invalid or expired token/OTP
  *         content:
  *           application/json:
  *             schema:

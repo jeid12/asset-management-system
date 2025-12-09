@@ -2,11 +2,12 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { User } from "../entities/User";
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, VerifyOtpDto } from "../dtos/auth.dto";
+import { Otp } from "../entities/Otp";
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, VerifyOtpDto, VerifyResetOtpDto, ResetPasswordWithOtpDto } from "../dtos/auth.dto";
 import { validateDto } from "../utils/validator.util";
 import { hashPassword, comparePassword } from "../utils/password.util";
-import { generateToken, generateResetToken, verifyToken } from "../utils/jwt.util";
-import { sendWelcomeEmail, sendResetPasswordEmail, sendOtpEmail } from "../utils/email.util";
+import { generateToken, verifyToken } from "../utils/jwt.util";
+import { sendWelcomeEmail, sendOtpEmail } from "../utils/email.util";
 import { tokenBlacklist } from "../utils/tokenBlacklist.util";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { createOtpForUser, verifyOtpForUser } from "../utils/otp.util";
@@ -14,6 +15,7 @@ import { createSession, endSession } from "../utils/session.util";
 import { getClientIp } from "../middlewares/audit.middleware";
 
 const userRepository = AppDataSource.getRepository(User);
+const otpRepository = AppDataSource.getRepository(Otp);
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -196,20 +198,23 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
     // Always return success to prevent email enumeration
     if (!user) {
-      res.status(200).json({ message: "If the email exists, a reset link has been sent" });
+      res.status(200).json({ message: "If the email exists, a password reset code has been sent" });
       return;
     }
 
-    // Generate reset token
-    const resetToken = generateResetToken(user.id);
+    // Generate OTP for password reset
+    const otp = await createOtpForUser(user.id, 10); // 10 minutes expiry
 
-    // Send reset email
+    // Send OTP email
     try {
-      await sendResetPasswordEmail(email, resetToken);
-      res.status(200).json({ message: "If the email exists, a reset link has been sent" });
+      await sendOtpEmail(email, otp.code);
+      res.status(200).json({ 
+        message: "If the email exists, a password reset code has been sent",
+        success: true 
+      });
     } catch (emailError) {
-      console.error("Failed to send reset email:", emailError);
-      res.status(500).json({ message: "Failed to send reset email" });
+      console.error("Failed to send OTP email:", emailError);
+      res.status(500).json({ message: "Failed to send reset code. Please try again." });
     }
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -217,41 +222,123 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+export const verifyResetOtp = async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
-    const { isValid, errors } = await validateDto(ResetPasswordDto, req.body);
+    const { isValid, errors } = await validateDto(VerifyResetOtpDto, req.body);
     if (!isValid) {
       res.status(400).json({ message: "Validation failed", errors });
       return;
     }
 
-    const { token, newPassword } = req.body;
-
-    // Verify token
-    let decoded;
-    try {
-      decoded = verifyToken(token);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid or expired token" });
-      return;
-    }
+    const { email, otp } = req.body;
 
     // Find user
-    const user = await userRepository.findOne({ where: { id: decoded.id } });
+    const user = await userRepository.findOne({ where: { email } });
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      res.status(400).json({ message: "Invalid request" });
       return;
     }
 
-    // Hash new password
-    const hashedPassword = await hashPassword(newPassword);
+    // Verify OTP (but don't mark as used yet - save for actual reset)
+    const otpRecord = await otpRepository.findOne({
+      where: { userId: user.id, code: otp, used: false },
+      order: { createdAt: "DESC" },
+    });
 
-    // Update password
-    user.password = hashedPassword;
-    await userRepository.save(user);
+    if (!otpRecord) {
+      res.status(400).json({ message: "Invalid or expired OTP" });
+      return;
+    }
 
-    res.status(200).json({ message: "Password reset successfully" });
+    if (otpRecord.expiresAt < new Date()) {
+      res.status(400).json({ message: "OTP has expired. Please request a new one." });
+      return;
+    }
+
+    res.status(200).json({ 
+      message: "OTP verified successfully",
+      success: true 
+    });
+  } catch (error) {
+    console.error("Verify reset OTP error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Check if request is OTP-based or token-based
+    if (req.body.otp) {
+      // OTP-based reset
+      const { isValid, errors } = await validateDto(ResetPasswordWithOtpDto, req.body);
+      if (!isValid) {
+        res.status(400).json({ message: "Validation failed", errors });
+        return;
+      }
+
+      const { email, otp, newPassword } = req.body;
+
+      // Find user
+      const user = await userRepository.findOne({ where: { email } });
+      if (!user) {
+        res.status(400).json({ message: "Invalid request" });
+        return;
+      }
+
+      // Verify and use OTP
+      const isValidOtp = await verifyOtpForUser(user.id, otp);
+      if (!isValidOtp) {
+        res.status(400).json({ message: "Invalid or expired OTP" });
+        return;
+      }
+
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+
+      // Update password
+      user.password = hashedPassword;
+      await userRepository.save(user);
+
+      res.status(200).json({ 
+        message: "Password reset successfully",
+        success: true 
+      });
+    } else {
+      // Token-based reset (original flow)
+      const { isValid, errors } = await validateDto(ResetPasswordDto, req.body);
+      if (!isValid) {
+        res.status(400).json({ message: "Validation failed", errors });
+        return;
+      }
+
+      const { token, newPassword } = req.body;
+
+      // Verify token
+      let decoded;
+      try {
+        decoded = verifyToken(token);
+      } catch (error) {
+        res.status(400).json({ message: "Invalid or expired token" });
+        return;
+      }
+
+      // Find user
+      const user = await userRepository.findOne({ where: { id: decoded.id } });
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+
+      // Update password
+      user.password = hashedPassword;
+      await userRepository.save(user);
+
+      res.status(200).json({ message: "Password reset successfully" });
+    }
   } catch (error) {
     console.error("Reset password error:", error);
     res.status(500).json({ message: "Internal server error" });

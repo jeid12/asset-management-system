@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import axios from "axios";
+import apiClient from "@/app/utils/api";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -42,12 +42,13 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
     try {
-      await axios.post("http://localhost:5000/api/auth/forgot-password", { email });
-      setMessage("Password reset link sent to your email. Please check your inbox.");
+      const response = await apiClient.post("/auth/forgot-password", { email });
+      setMessage("Password reset code sent to your email. Please check your inbox.");
       setStep("otp");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to send reset email");
+      setError(err.response?.data?.message || "Failed to send reset code");
     } finally {
       setLoading(false);
     }
@@ -58,15 +59,16 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
     try {
-      await axios.post("http://localhost:5000/api/auth/verify-reset-otp", {
+      await apiClient.post("/auth/verify-reset-otp", {
         email,
         otp,
       });
-      setMessage("OTP verified successfully! Now set your new password.");
+      setMessage("Code verified successfully! Now set your new password.");
       setStep("newpassword");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid OTP");
+      setError(err.response?.data?.message || "Invalid or expired code");
     } finally {
       setLoading(false);
     }
@@ -77,6 +79,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
 
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match");
@@ -91,7 +94,7 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      await axios.post("http://localhost:5000/api/auth/reset-password", {
+      await apiClient.post("/auth/reset-password", {
         email,
         otp,
         newPassword,
