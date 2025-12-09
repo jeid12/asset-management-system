@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import apiClient from "@/app/utils/api";
 
 export default function LoginPage() {
@@ -286,22 +287,22 @@ export default function LoginPage() {
             fontSize: "0.875rem",
           }}
         >
-          <a
+          <Link
             href="/forgot-password"
             style={{ color: "#1e3a8a", fontWeight: "500", textDecoration: "none" }}
             onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
             onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
           >
             Forgot password?
-          </a>
-          <a
+          </Link>
+          <Link
             href="#"
             style={{ color: "#1e3a8a", fontWeight: "500", textDecoration: "none" }}
             onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
             onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
           >
             Help Desk
-          </a>
+          </Link>
         </div>
       </div>
 

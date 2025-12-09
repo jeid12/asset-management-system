@@ -322,6 +322,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               style={{
                 display: "flex",
                 alignItems: "center",

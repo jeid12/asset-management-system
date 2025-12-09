@@ -1,8 +1,11 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import axios from "axios";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -94,7 +97,7 @@ export default function ForgotPasswordPage() {
         newPassword,
       });
       setMessage("Password reset successful! Redirecting to login...");
-      setTimeout(() => (window.location.href = "/login"), 1500);
+      setTimeout(() => router.push("/login"), 1500);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to reset password");
     } finally {
@@ -289,12 +292,12 @@ export default function ForgotPasswordPage() {
 
         {/* Footer Links */}
         <div className="flex justify-between text-sm text-blue-800 mt-6 font-medium">
-          <a href="/login" className="hover:underline">
+          <Link href="/login" className="hover:underline">
             Back to Login
-          </a>
-          <a href="#" className="hover:underline">
+          </Link>
+          <Link href="#" className="hover:underline">
             Help Desk
-          </a>
+          </Link>
         </div>
       </div>
     </div>
