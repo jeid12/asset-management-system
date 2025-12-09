@@ -2,10 +2,10 @@
 import "reflect-metadata";
 import express, { Application } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import { specs } from "./config/swagger";
+import { config, validateEnv } from "./config/env.config";
 import { AppDataSource } from "./data-source";
 import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
@@ -18,70 +18,67 @@ import notificationRoutes from "./routes/notification.routes";
 import auditLogRoutes from "./routes/audit-log.routes";
 import reportRoutes from "./routes/report.routes";
 
-// Load environment variables
-dotenv.config();
+// Validate environment variables
+validateEnv();
 
 const app: Application = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.server.port;
 
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-  credentials: true,
-}));
+app.use(cors(config.cors));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files (uploaded images)
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "..", config.upload.uploadDir)));
 
 // Swagger UI setup
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, {
-  swaggerOptions: {
-    url: "/api-docs.json",
-    displayOperationId: true,
-    displayRequestDuration: true,
-    filter: true,
-    showExtensions: false,
-    showCommonExtensions: false,
-  },
-  customCss: `
-    .topbar { display: none; }
-    .swagger-ui .topbar-wrapper { display: none; }
-  `,
-  customSiteTitle: "RTB Asset Management API",
-}));
+if (config.swagger.enabled) {
+  app.use(config.swagger.path, swaggerUi.serve, swaggerUi.setup(specs, {
+    swaggerOptions: {
+      url: `${config.swagger.path}.json`,
+      displayOperationId: true,
+      displayRequestDuration: true,
+      filter: true,
+      showExtensions: false,
+      showCommonExtensions: false,
+    },
+    customCss: `
+      .topbar { display: none; }
+      .swagger-ui .topbar-wrapper { display: none; }
+    `,
+    customSiteTitle: config.swagger.title,
+  }));
 
-// Serve Swagger spec as JSON
-app.get("/api-docs.json", (_req, res) => {
-  res.setHeader("Content-Type", "application/json");
-  res.send(specs);
-});
+  // Serve Swagger spec as JSON
+  app.get(`${config.swagger.path}.json`, (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(specs);
+  });
+}
 
 // Health check route
 app.get("/", (_req, res) => {
-  res.json({ message: "RTB Asset Management System API is running!", docs: "/api-docs" });
-});
-
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/profile", profileRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/schools", schoolRoutes);
-app.use("/api/devices", deviceRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/applications", applicationRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/audit-logs", auditLogRoutes);
-app.use("/api/reports", reportRoutes);
-
-// Error handling middleware
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || "Internal server error",
+  res.json({ 
+    message: "RTB Asset Management System API is running!", 
+    version: config.swagger.version,
+    environment: config.server.nodeEnv,
+    docs: config.swagger.enabled ? config.swagger.path : "disabled"
   });
 });
+
+// API Routes
+const apiPath = config.server.apiBasePath;
+app.use(`${apiPath}/auth`, authRoutes);
+app.use(`${apiPath}/profile`, profileRoutes);
+app.use(`${apiPath}/users`, userRoutes);
+app.use(`${apiPath}/schools`, schoolRoutes);
+app.use(`${apiPath}/devices`, deviceRoutes);
+app.use(`${apiPath}/dashboard`, dashboardRoutes);
+app.use(`${apiPath}/applications`, applicationRoutes);
+app.use(`${apiPath}/notifications`, notificationRoutes);
+app.use(`${apiPath}/audit-logs`, auditLogRoutes);
+app.use(`${apiPath}/reports`, reportRoutes);
 
 // Initialize database connection and start server
 AppDataSource.initialize()
@@ -90,6 +87,18 @@ AppDataSource.initialize()
     
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`📝 Environment: ${config.server.nodeEnv}`);
+      console.log(`🌍 CORS Origin: ${config.cors.origin.join(', ')}`);
+      if (config.swagger.enabled) {
+        const baseUrl = config.deployment.renderExternalUrl || `http://localhost:${PORT}`;
+        console.log(`📚 Swagger UI: ${baseUrl}${config.swagger.path}`);
+      }
+    });
+  })
+  .catch((error) => {
+    console.error("❌ Error connecting to database:", error);
+    process.exit(1);
+  }); console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`📚 Swagger UI available at http://localhost:${PORT}/api-docs`);
     });
