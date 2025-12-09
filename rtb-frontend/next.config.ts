@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  trailingSlash: false,
-  images: {
-    unoptimized: true,
-  },
   reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
 };
 
 export default nextConfig;
