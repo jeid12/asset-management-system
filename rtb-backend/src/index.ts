@@ -80,6 +80,14 @@ app.use(`${apiPath}/notifications`, notificationRoutes);
 app.use(`${apiPath}/audit-logs`, auditLogRoutes);
 app.use(`${apiPath}/reports`, reportRoutes);
 
+// Error handling middleware
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || "Internal server error",
+  });
+});
+
 // Initialize database connection and start server
 AppDataSource.initialize()
   .then(() => {
@@ -95,15 +103,8 @@ AppDataSource.initialize()
       }
     });
   })
-  .catch((error) => {
-    console.error("❌ Error connecting to database:", error);
-    process.exit(1);
-  }); console.log(`🚀 Server is running on port ${PORT}`);
-      console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`📚 Swagger UI available at http://localhost:${PORT}/api-docs`);
-    });
-  })
-  .catch((error) => {
+  .catch((error: any) => {
     console.error("❌ Error connecting to database:", error);
     process.exit(1);
   });
+
