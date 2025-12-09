@@ -218,6 +218,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }
         }
 
+        .desktop-only {
+          display: flex;
+        }
+
+        @media (max-width: 768px) {
+          .desktop-only {
+            display: none !important;
+          }
+        }
+
         main {
           padding: 2rem;
           flex: 1;
@@ -267,17 +277,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         >
           {isSidebarCollapsed ? <FaBars size="1rem" /> : <FaTimes size="1rem" />}
         </button>
-
-        <style jsx>{`
-          .desktop-only {
-            display: flex;
-          }
-          @media (max-width: 768px) {
-            .desktop-only {
-              display: none !important;
-            }
-          }
-        `}</style>
 
         {/* Logo/Brand */}
         <div style={{ 
