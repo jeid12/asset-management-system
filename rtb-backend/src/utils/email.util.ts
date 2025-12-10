@@ -1,14 +1,6 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: parseInt(process.env.MAIL_PORT || "587"),
-  secure: false,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASSWORD,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendResetPasswordEmail = async (
   email: string,
@@ -16,8 +8,8 @@ export const sendResetPasswordEmail = async (
 ): Promise<void> => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-  const mailOptions = {
-    from: process.env.MAIL_FROM ,
+  await resend.emails.send({
+    from: process.env.MAIL_FROM || "RTB Asset Management <onboarding@resend.dev>",
     to: email,
     subject: "Password Reset Request",
     html: `
@@ -27,17 +19,15 @@ export const sendResetPasswordEmail = async (
       <p>This link will expire in 1 hour.</p>
       <p>If you didn't request this, please ignore this email.</p>
     `,
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };
 
 export const sendWelcomeEmail = async (
   email: string,
   fullName: string
 ): Promise<void> => {
-  const mailOptions = {
-    from: process.env.MAIL_FROM || "noreply@rtb.com",
+  await resend.emails.send({
+    from: process.env.MAIL_FROM || "RTB Asset Management <onboarding@resend.dev>",
     to: email,
     subject: "Welcome to RTB Asset Management System",
     html: `
@@ -45,14 +35,12 @@ export const sendWelcomeEmail = async (
       <p>Your account has been successfully created.</p>
       <p>You can now log in and start using the RTB Asset Management System.</p>
     `,
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };
 
 export const sendOtpEmail = async (email: string, otp: string): Promise<void> => {
-  const mailOptions = {
-    from: process.env.MAIL_FROM ,
+  await resend.emails.send({
+    from: process.env.MAIL_FROM || "RTB Asset Management <onboarding@resend.dev>",
     to: email,
     subject: "Your RTB Login OTP",
     html: `
@@ -62,7 +50,5 @@ export const sendOtpEmail = async (email: string, otp: string): Promise<void> =>
       <p>This code will expire in 5 minutes.</p>
       <p>If you didn't request this, please contact support.</p>
     `,
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };

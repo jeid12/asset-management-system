@@ -29,6 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Fetch current user profile
@@ -42,6 +43,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     };
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    // Close mobile menu when route changes
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const handleUserUpdate = (updatedUser: User) => {
     setCurrentUser(updatedUser);
@@ -79,30 +85,176 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
+    <div className="dashboard-wrapper">
+      <style jsx>{`
+        .dashboard-wrapper {
+          display: flex;
+          min-height: 100vh;
+          background-color: #f8f9fa;
+        }
+
+        .sidebar {
+          width: ${isSidebarCollapsed ? "80px" : "250px"};
+          background-color: #1e3a8a;
+          color: white;
+          padding: 2rem 0;
+          position: fixed;
+          height: 100vh;
+          left: 0;
+          top: 0;
+          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
+          overflow-y: auto;
+          overflow-x: hidden;
+          z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+          .sidebar {
+            width: 280px;
+            transform: ${isMobileMenuOpen ? "translateX(0)" : "translateX(-100%)"};
+          }
+        }
+
+        .mobile-overlay {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .mobile-overlay {
+            display: ${isMobileMenuOpen ? "block" : "none"};
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+          }
+        }
+
+        .main-content {
+          margin-left: ${isSidebarCollapsed ? "80px" : "250px"};
+          width: ${isSidebarCollapsed ? "calc(100% - 80px)" : "calc(100% - 250px)"};
+          display: flex;
+          flex-direction: column;
+          transition: all 0.3s ease;
+          min-height: 100vh;
+        }
+
+        @media (max-width: 768px) {
+          .main-content {
+            margin-left: 0;
+            width: 100%;
+          }
+        }
+
+        .header {
+          background: white;
+          border-bottom: 1px solid #E5E7EB;
+          padding: 1rem 2rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        @media (max-width: 768px) {
+          .header {
+            padding: 1rem;
+          }
+        }
+
+        .mobile-menu-btn {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .mobile-menu-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            margin-right: 1rem;
+          }
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .header-title h1 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        @media (max-width: 768px) {
+          .header-title h1 {
+            font-size: 1.125rem;
+          }
+        }
+
+        .header-subtitle {
+          margin: 0.25rem 0 0 0;
+          font-size: 0.875rem;
+          color: #6B7280;
+        }
+
+        @media (max-width: 640px) {
+          .header-subtitle {
+            display: none;
+          }
+        }
+
+        .desktop-only {
+          display: flex;
+        }
+
+        @media (max-width: 768px) {
+          .desktop-only {
+            display: none !important;
+          }
+        }
+
+        main {
+          padding: 2rem;
+          flex: 1;
+        }
+
+        @media (max-width: 768px) {
+          main {
+            padding: 1rem;
+          }
+        }
+      `}</style>
+
+      {/* Mobile Overlay */}
+      <div 
+        className="mobile-overlay" 
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
       {/* Vertical Sidebar */}
-      <aside
-        style={{
-          width: isSidebarCollapsed ? "80px" : "250px",
-          backgroundColor: "#1e3a8a",
-          color: "white",
-          padding: "2rem 0",
-          position: "fixed",
-          height: "100vh",
-          left: 0,
-          top: 0,
-          boxShadow: "2px 0 10px rgba(0, 0, 0, 0.1)",
-          transition: "width 0.3s ease",
-          overflow: "hidden",
-        }}
-      >
-        {/* Toggle Button */}
+      <aside className="sidebar">
+        {/* Desktop Toggle Button */}
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           style={{
             position: "absolute",
             top: "1rem",
-            right: isSidebarCollapsed ? "1rem" : "1rem",
+            right: "1rem",
             backgroundColor: "rgba(96, 165, 250, 0.2)",
             border: "1px solid rgba(96, 165, 250, 0.3)",
             color: "white",
@@ -121,6 +273,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = "rgba(96, 165, 250, 0.2)";
           }}
+          className="desktop-only"
         >
           {isSidebarCollapsed ? <FaBars size="1rem" /> : <FaTimes size="1rem" />}
         </button>
@@ -169,6 +322,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -246,44 +400,35 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content Area with Header */}
-      <div style={{ 
-        marginLeft: isSidebarCollapsed ? "80px" : "250px", 
-        width: isSidebarCollapsed ? "calc(100% - 80px)" : "calc(100% - 250px)", 
-        display: "flex", 
-        flexDirection: "column",
-        transition: "margin-left 0.3s ease, width 0.3s ease"
-      }}>
+      <div className="main-content">
         {/* Top Header Bar */}
-        <header
-          style={{
-            background: "white",
-            borderBottom: "1px solid #E5E7EB",
-            padding: "1rem 2rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            position: "sticky",
-            top: 0,
-            zIndex: 100,
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <div>
-            <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "700", color: "#111827" }}>
-              {currentUser?.role === "admin" && "Admin Dashboard"}
-              {currentUser?.role === "rtb-staff" && "Staff Dashboard"}
-              {currentUser?.role === "headteacher" && "Headteacher Dashboard"}
-              {currentUser?.role === "school-staff" && "School Staff Dashboard"}
-            </h1>
-            <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.875rem", color: "#6B7280" }}>
-              Welcome back, {currentUser?.fullName || "User"}
-            </p>
+        <header className="header">
+          <div className="header-left">
+            {/* Mobile Menu Button */}
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <FaBars size="1.25rem" />
+            </button>
+            
+            <div className="header-title">
+              <h1>
+                {currentUser?.role === "admin" && "Admin Dashboard"}
+                {currentUser?.role === "rtb-staff" && "Staff Dashboard"}
+                {currentUser?.role === "headteacher" && "Headteacher Dashboard"}
+                {currentUser?.role === "school-staff" && "School Staff Dashboard"}
+              </h1>
+              <p className="header-subtitle">
+                Welcome back, {currentUser?.fullName || "User"}
+              </p>
+            </div>
           </div>
           <NotificationBell />
         </header>
 
         {/* Main Content */}
-        <main style={{ padding: "2rem", flex: 1 }}>
+        <main>
           {children}
         </main>
       </div>

@@ -6,6 +6,7 @@ import { tokenBlacklist } from "../utils/tokenBlacklist.util";
 export interface AuthRequest extends Request {
   user?: JwtPayload;
   token?: string;
+  sessionId?: string;
 }
 
 export const authenticate = (
@@ -27,6 +28,12 @@ export const authenticate = (
     if (tokenBlacklist.isBlacklisted(token)) {
       res.status(401).json({ message: "Token has been revoked. Please login again." });
       return;
+    }
+
+    // Get sessionId from header if available
+    const sessionId = req.headers['x-session-id'] as string;
+    if (sessionId) {
+      req.sessionId = sessionId;
     }
 
     const decoded = verifyToken(token);

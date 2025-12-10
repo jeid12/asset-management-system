@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import apiClient from "@/app/utils/api";
 
 export default function LoginPage() {
@@ -111,108 +112,332 @@ export default function LoginPage() {
 
   return (
     <div
-      className="flex items-center justify-center min-h-screen"
       style={{
-        position: "relative",
-        background: "linear-gradient(180deg,#1e3a8a 0%,#3b82f6 100%)",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(180deg, #1e3a8a 0%, #3b82f6 100%)",
+        padding: "2rem 1rem",
       }}
     >
-      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
-
-      <div className="relative z-10 bg-white bg-opacity-95 p-8 rounded-lg border border-blue-200 shadow-xl w-full max-w-md mx-4">
-        <div className="flex flex-col items-center mb-6">
-          <div style={{ 
-            backgroundColor: "white", 
-            borderRadius: "16px", 
-            padding: "0.75rem", 
-            marginBottom: "1rem",
-            width: "90px",
-            height: "90px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 12px rgba(30, 58, 138, 0.2)"
-          }}>
-            <img 
-              src="/images/logo.jpg" 
-              alt="Rwanda TVET Board" 
+      {/* Login Card */}
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "16px",
+          padding: "2.5rem",
+          maxWidth: "480px",
+          width: "100%",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+        }}
+      >
+        {/* Logo and Header */}
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              padding: "0.75rem",
+              marginBottom: "1rem",
+              width: "90px",
+              height: "90px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 12px rgba(30, 58, 138, 0.2)",
+            }}
+          >
+            <img
+              src="/images/logo.jpg"
+              alt="Rwanda TVET Board"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
-          <h1 className="text-2xl font-bold text-blue-900 tracking-wide mb-1">Rwanda TVET Board</h1>
-          <p className="text-sm text-gray-600 font-medium">Asset Management System</p>
-          <p className="text-xs text-gray-500 mt-1">rtb.gov.rw</p>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: "700", color: "#1e3a8a", margin: "0 0 0.5rem" }}>
+            Rwanda TVET Board
+          </h1>
+          <p style={{ fontSize: "0.95rem", color: "#6B7280", margin: "0 0 0.25rem", fontWeight: "500" }}>
+            Asset Management System
+          </p>
+          <p style={{ fontSize: "0.8rem", color: "#9CA3AF", margin: 0 }}>rtb.gov.rw</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        {/* Login Form */}
+        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email or Username</label>
+            <label
+              htmlFor="emailOrUsername"
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Email or Username
+            </label>
             <input
+              id="emailOrUsername"
               type="text"
-              placeholder="you@example.com or username"
+              placeholder="Enter your email or username"
               value={emailOrUsername}
               onChange={(e) => setEmailOrUsername(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              style={{
+                width: "100%",
+                padding: "0.875rem 1rem",
+                backgroundColor: "#F9FAFB",
+                border: "2px solid #E5E7EB",
+                borderRadius: "8px",
+                fontSize: "0.95rem",
+                color: "#1F2937",
+                outline: "none",
+                transition: "all 0.2s",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#3B82F6")}
+              onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")}
               required
+              autoComplete="username"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label
+              htmlFor="password"
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              style={{
+                width: "100%",
+                padding: "0.875rem 1rem",
+                backgroundColor: "#F9FAFB",
+                border: "2px solid #E5E7EB",
+                borderRadius: "8px",
+                fontSize: "0.95rem",
+                color: "#1F2937",
+                outline: "none",
+                transition: "all 0.2s",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#3B82F6")}
+              onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")}
               required
+              autoComplete="current-password"
             />
           </div>
+
+          {error && (
+            <div
+              style={{
+                padding: "0.75rem 1rem",
+                backgroundColor: "#FEE2E2",
+                border: "1px solid #FCA5A5",
+                borderRadius: "8px",
+                color: "#DC2626",
+                fontSize: "0.875rem",
+                fontWeight: "500",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-900 hover:bg-blue-800 text-white font-medium rounded shadow-sm transition-colors disabled:opacity-60"
+            style={{
+              width: "100%",
+              padding: "1rem",
+              backgroundColor: loading ? "#9CA3AF" : "#1e3a8a",
+              color: "white",
+              fontWeight: "600",
+              fontSize: "1rem",
+              borderRadius: "8px",
+              border: "none",
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              boxShadow: "0 4px 12px rgba(30, 58, 138, 0.3)",
+            }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = "#1e40af")}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = "#1e3a8a")}
           >
             {loading ? "Checking credentials..." : "Log In"}
           </button>
         </form>
 
-        {error && <p className="text-red-600 text-center mt-4 text-sm font-medium">{error}</p>}
-
-        <div className="flex justify-between text-sm text-blue-800 mt-6 font-medium">
-          <a href="/forgot-password" className="hover:underline">Forgot password?</a>
-          <a href="#" className="hover:underline">Help Desk</a>
+        {/* Links */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: "1.5rem",
+            fontSize: "0.875rem",
+          }}
+        >
+          <Link
+            href="/forgot-password"
+            style={{ color: "#1e3a8a", fontWeight: "500", textDecoration: "none" }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+          >
+            Forgot password?
+          </Link>
+          <Link
+            href="#"
+            style={{ color: "#1e3a8a", fontWeight: "500", textDecoration: "none" }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+          >
+            Help Desk
+          </Link>
         </div>
       </div>
 
+      {/* OTP Verification Modal */}
       {showVerification && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
-            <h2 className="text-xl font-semibold mb-2 text-blue-900">Verify your identity</h2>
-            <p className="text-sm text-gray-600 mb-4">A one-time code was sent to the email associated with your account. Enter it below to complete sign in.</p>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "480px",
+              width: "100%",
+              boxShadow: "0 25px 80px rgba(0, 0, 0, 0.4)",
+            }}
+          >
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#1e3a8a", marginBottom: "0.5rem" }}>
+              Verify your identity
+            </h2>
+            <p style={{ fontSize: "0.9rem", color: "#6B7280", marginBottom: "1.5rem" }}>
+              A one-time code was sent to the email associated with your account. Enter it below to complete sign in.
+            </p>
 
-            <div className="mb-4">
-              <label className="block mb-2 font-medium text-gray-700">One-time code</label>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label
+                htmlFor="otpCode"
+                style={{
+                  display: "block",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                One-time code
+              </label>
               <input
+                id="otpCode"
                 type="text"
                 value={verificationCode}
                 onChange={handleCodeChange}
                 placeholder="Enter code"
                 inputMode="numeric"
-                className="w-full px-4 py-3 border rounded text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-300"
+                style={{
+                  width: "100%",
+                  padding: "1rem",
+                  border: "2px solid #E5E7EB",
+                  borderRadius: "8px",
+                  textAlign: "center",
+                  fontSize: "1.25rem",
+                  letterSpacing: "0.5rem",
+                  outline: "none",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "#3B82F6")}
+                onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")}
               />
-              <div className="flex items-center justify-between mt-2 text-sm">
-                <span className="text-gray-500">Expires in: <strong className="text-blue-800">{Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}</strong></span>
-                <button onClick={handleResend} disabled={resending} className="text-blue-800 hover:underline">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: "0.75rem",
+                  fontSize: "0.875rem",
+                }}
+              >
+                <span style={{ color: "#6B7280" }}>
+                  Expires in:{" "}
+                  <strong style={{ color: "#1e3a8a" }}>
+                    {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
+                  </strong>
+                </span>
+                <button
+                  onClick={handleResend}
+                  disabled={resending}
+                  style={{
+                    color: "#1e3a8a",
+                    fontWeight: "600",
+                    background: "none",
+                    border: "none",
+                    cursor: resending ? "not-allowed" : "pointer",
+                    textDecoration: "none",
+                  }}
+                  onMouseEnter={(e) => !resending && (e.currentTarget.style.textDecoration = "underline")}
+                  onMouseLeave={(e) => !resending && (e.currentTarget.style.textDecoration = "none")}
+                >
                   {resending ? "Resending..." : "Resend code"}
                 </button>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-4">
-              <button onClick={() => setShowVerification(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
-              <button onClick={handleVerifyCode} disabled={verifying} className="px-4 py-2 bg-blue-900 text-white rounded hover:bg-blue-800">
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <button
+                onClick={() => setShowVerification(false)}
+                style={{
+                  flex: 1,
+                  padding: "0.875rem",
+                  backgroundColor: "#F3F4F6",
+                  color: "#374151",
+                  fontWeight: "600",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#E5E7EB")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#F3F4F6")}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleVerifyCode}
+                disabled={verifying}
+                style={{
+                  flex: 1,
+                  padding: "0.875rem",
+                  backgroundColor: verifying ? "#9CA3AF" : "#1e3a8a",
+                  color: "white",
+                  fontWeight: "600",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: verifying ? "not-allowed" : "pointer",
+                }}
+                onMouseEnter={(e) => !verifying && (e.currentTarget.style.backgroundColor = "#1e40af")}
+                onMouseLeave={(e) => !verifying && (e.currentTarget.style.backgroundColor = "#1e3a8a")}
+              >
                 {verifying ? "Verifying..." : "Verify & Sign in"}
               </button>
             </div>

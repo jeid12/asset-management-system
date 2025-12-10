@@ -1,8 +1,10 @@
 // src/middlewares/audit.middleware.ts
 import { Request, Response, NextFunction } from "express";
+import * as geoip from "geoip-lite";
 import { AppDataSource } from "../data-source";
 import { AuditLog, ActionType, TargetEntity } from "../entities/AuditLog";
 import { AuthRequest } from "./auth.middleware";
+import { getSession, getSessionDuration } from "../utils/session.util";
 
 const auditLogRepository = AppDataSource.getRepository(AuditLog);
 
@@ -24,6 +26,29 @@ export const getClientIp = (req: Request): string => {
     req.ip ||
     "unknown"
   );
+};
+
+/**
+ * Get location information from IP address
+ */
+export const getLocationFromIp = (ip: string) => {
+  // Skip local/private IPs
+  if (ip === "unknown" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("127.")) {
+    return null;
+  }
+
+  const geo = geoip.lookup(ip);
+  
+  if (geo) {
+    return {
+      country: geo.country,
+      region: geo.region,
+      city: geo.city,
+      timezone: geo.timezone,
+    };
+  }
+  
+  return null;
 };
 
 /**
@@ -72,6 +97,14 @@ export const auditMiddleware = (
         const statusCode = res.statusCode;
         const isSuccess = statusCode >= 200 && statusCode < 400;
 
+        // Get location from IP
+        const location = getLocationFromIp(ipAddress);
+
+        // Get session info
+        const sessionId = (req as any).sessionId;
+        const session = sessionId ? getSession(sessionId) : null;
+        const sessionDuration = sessionId ? getSessionDuration(sessionId) : undefined;
+
         const auditLog = auditLogRepository.create({
           actorId: req.user?.id,
           actorName: (req.user as any)?.fullName,
@@ -90,6 +123,15 @@ export const auditMiddleware = (
           executionDuration,
           statusCode,
           isSuccess,
+          // Location information
+          country: location?.country,
+          city: location?.city,
+          region: location?.region,
+          timezone: location?.timezone,
+          // Session tracking
+          sessionId,
+          sessionStart: session?.loginTime,
+          sessionDuration,
           metadata: {
             requestBody: options?.captureRequestBody ? req.body : undefined,
             responseBody: options?.captureResponseBody ? responseBody : undefined,

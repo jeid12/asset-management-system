@@ -77,3 +77,33 @@ export class VerifyOtpDto {
   @Matches(/^[0-9]{4,8}$/, { message: "OTP must be numeric (4-8 digits)" })
   otp: string;
 }
+
+export class VerifyResetOtpDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^[0-9]{6}$/, { message: "OTP must be 6 digits" })
+  otp: string;
+}
+
+export class ResetPasswordWithOtpDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^[0-9]{6}$/, { message: "OTP must be 6 digits" })
+  otp: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8, { message: "Password must be at least 8 characters long" })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, { 
+    message: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character" 
+  })
+  newPassword: string;
+}
