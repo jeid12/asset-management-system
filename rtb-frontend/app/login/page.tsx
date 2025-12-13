@@ -149,7 +149,7 @@ export default function LoginPage() {
             }}
           >
             <img
-              src="/images/logo.jpg"
+              src="/images/icon.jpeg"
               alt="Rwanda TVET Board"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
