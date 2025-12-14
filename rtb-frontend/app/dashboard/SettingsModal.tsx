@@ -31,6 +31,7 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }: S
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [mounted, setMounted] = useState(false);
   
   // Profile edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -41,10 +42,11 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }: S
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
-    // Load theme from localStorage
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" || "light";
-    setTheme(savedTheme);
-    applyTheme(savedTheme);
+    setMounted(true);
+    // Load theme from localStorage and DOM
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark";
+    const currentTheme = document.documentElement.getAttribute("data-theme") as "light" | "dark";
+    setTheme(currentTheme || savedTheme || "light");
   }, []);
 
   useEffect(() => {
@@ -57,15 +59,22 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }: S
     }
   }, [user]);
 
-  const applyTheme = (newTheme: "light" | "dark") => {
-    document.documentElement.setAttribute("data-theme", newTheme);
-    localStorage.setItem("theme", newTheme);
-  };
-
   const handleThemeToggle = () => {
+    if (!mounted) return;
+    
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    applyTheme(newTheme);
+    
+    // Apply theme
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+    
+    localStorage.setItem("theme", newTheme);
     setSuccess("Theme updated successfully!");
     setTimeout(() => setSuccess(""), 3000);
   };

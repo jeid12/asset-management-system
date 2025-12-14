@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
 import { APP_NAME, APP_DESCRIPTION } from "./config/constants";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 
 const geistSans = Geist({
@@ -38,11 +39,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
