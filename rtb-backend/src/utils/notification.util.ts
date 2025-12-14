@@ -16,17 +16,26 @@ interface CreateNotificationParams {
 }
 
 export const createNotification = async (params: CreateNotificationParams): Promise<Notification> => {
-  const notification = notificationRepository.create({
-    userId: params.userId,
-    type: params.type as any,
-    title: params.title,
-    message: params.message,
-    metadata: params.metadata,
-    actionUrl: params.actionUrl,
-    isRead: false,
-  });
+  try {
+    console.log("📬 Creating notification:", { userId: params.userId, type: params.type, title: params.title });
+    
+    const notification = notificationRepository.create({
+      userId: params.userId,
+      type: params.type as any,
+      title: params.title,
+      message: params.message,
+      metadata: params.metadata,
+      actionUrl: params.actionUrl,
+      isRead: false,
+    });
 
-  return await notificationRepository.save(notification);
+    const saved = await notificationRepository.save(notification);
+    console.log("✅ Notification created successfully:", saved.id);
+    return saved;
+  } catch (error) {
+    console.error("❌ Error creating notification:", error);
+    throw error;
+  }
 };
 
 export const notifyUsersByRole = async (
@@ -37,21 +46,36 @@ export const notifyUsersByRole = async (
   metadata?: any,
   actionUrl?: string
 ): Promise<Notification[]> => {
-  const users = await userRepository.find({ where: { role: role as any } });
-  
-  const notifications = users.map((user) =>
-    notificationRepository.create({
-      userId: user.id,
-      type: type as any,
-      title,
-      message,
-      metadata,
-      actionUrl,
-      isRead: false,
-    })
-  );
+  try {
+    console.log("📬 Notifying users by role:", role);
+    
+    const users = await userRepository.find({ where: { role: role as any } });
+    console.log(`👥 Found ${users.length} users with role: ${role}`);
+    
+    if (users.length === 0) {
+      console.log("⚠️ No users found with role:", role);
+      return [];
+    }
+    
+    const notifications = users.map((user) =>
+      notificationRepository.create({
+        userId: user.id,
+        type: type as any,
+        title,
+        message,
+        metadata,
+        actionUrl,
+        isRead: false,
+      })
+    );
 
-  return await notificationRepository.save(notifications);
+    const saved = await notificationRepository.save(notifications);
+    console.log(`✅ Created ${saved.length} notifications for role: ${role}`);
+    return saved;
+  } catch (error) {
+    console.error("❌ Error notifying users by role:", error);
+    throw error;
+  }
 };
 
 export const notifyAdminAndStaff = async (
@@ -61,24 +85,40 @@ export const notifyAdminAndStaff = async (
   metadata?: any,
   actionUrl?: string
 ): Promise<Notification[]> => {
-  const users = await userRepository
-    .createQueryBuilder("user")
-    .where("user.role IN (:...roles)", { roles: ["admin", "rtb-staff"] })
-    .getMany();
+  try {
+    console.log("📬 Notifying admin and staff");
+    
+    const users = await userRepository
+      .createQueryBuilder("user")
+      .where("user.role IN (:...roles)", { roles: ["admin", "rtb-staff"] })
+      .getMany();
+    
+    console.log(`👥 Found ${users.length} admin/staff users`);
+    
+    if (users.length === 0) {
+      console.log("⚠️ No admin or staff users found!");
+      return [];
+    }
 
-  const notifications = users.map((user) =>
-    notificationRepository.create({
-      userId: user.id,
-      type: type as any,
-      title,
-      message,
-      metadata,
-      actionUrl,
-      isRead: false,
-    })
-  );
+    const notifications = users.map((user) =>
+      notificationRepository.create({
+        userId: user.id,
+        type: type as any,
+        title,
+        message,
+        metadata,
+        actionUrl,
+        isRead: false,
+      })
+    );
 
-  return await notificationRepository.save(notifications);
+    const saved = await notificationRepository.save(notifications);
+    console.log(`✅ Created ${saved.length} notifications for admin/staff`);
+    return saved;
+  } catch (error) {
+    console.error("❌ Error notifying admin and staff:", error);
+    throw error;
+  }
 };
 
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {

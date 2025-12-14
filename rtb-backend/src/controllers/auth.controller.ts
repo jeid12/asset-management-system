@@ -416,9 +416,14 @@ export const logout = async (req: AuthRequest, res: Response): Promise<void> => 
     }
 
     // End session if sessionId is provided
-    const sessionId = req.body.sessionId || req.headers['x-session-id'];
+    const sessionId = (req.body?.sessionId) || (req.headers ? req.headers['x-session-id'] : null);
     if (sessionId) {
-      await endSession(sessionId as string);
+      try {
+        await endSession(sessionId as string);
+      } catch (sessionError) {
+        console.error("Error ending session:", sessionError);
+        // Continue with logout even if session end fails
+      }
     }
 
     // Get the decoded token to access expiration time

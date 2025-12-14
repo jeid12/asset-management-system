@@ -42,3 +42,6 @@ coverage/
 tmp/
 temp/
 
+*.sql
+check-notifications-table.js
+migrate-audit-logs.js

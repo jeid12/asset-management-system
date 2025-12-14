@@ -118,13 +118,18 @@ export const createApplication = async (req: AuthRequest, res: Response): Promis
     await applicationRepository.save(application);
 
     // Notify admin and staff about new application
-    await notifyAdminAndStaff(
-      "application_submitted",
-      "New Device Application",
-      `${school.schoolName} has submitted a new device application`,
-      { applicationId: application.id, schoolName: school.schoolName },
-      `/dashboard/admin/applications`
-    );
+    try {
+      await notifyAdminAndStaff(
+        "application_submitted",
+        "New Device Application",
+        `${school.schoolName} has submitted a new device application`,
+        { applicationId: application.id, schoolName: school.schoolName },
+        `/dashboard/admin/applications`
+      );
+    } catch (notifError) {
+      console.error("Failed to send notification:", notifError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(201).json({
       message: "Application submitted successfully",
@@ -418,18 +423,22 @@ export const reviewApplication = async (req: AuthRequest, res: Response): Promis
     await applicationRepository.save(application);
 
     // Notify the applicant about the review
-    const notificationType = status === "Approved" ? "application_approved" : 
-                            status === "Rejected" ? "application_rejected" : 
-                            "application_reviewed";
-    
-    await createNotification({
-      userId: application.applicantId,
-      type: notificationType,
-      title: `Application ${status}`,
-      message: `Your device application has been ${status.toLowerCase()}. ${reviewNotes || ""}`,
-      metadata: { applicationId: application.id, status },
-      actionUrl: `/dashboard/applications`
-    });
+    try {
+      const notificationType = status === "Approved" ? "application_approved" : 
+                              status === "Rejected" ? "application_rejected" : 
+                              "application_reviewed";
+      
+      await createNotification({
+        userId: application.applicantId,
+        type: notificationType,
+        title: `Application ${status}`,
+        message: `Your device application has been ${status.toLowerCase()}. ${reviewNotes || ""}`,
+        metadata: { applicationId: application.id, status },
+        actionUrl: `/dashboard/applications`
+      });
+    } catch (notifError) {
+      console.error("Failed to send notification:", notifError);
+    }
 
     res.status(200).json({
       message: "Application reviewed successfully",
@@ -556,18 +565,22 @@ export const assignDevices = async (req: AuthRequest, res: Response): Promise<vo
     await applicationRepository.save(application);
 
     // Notify the applicant that devices have been assigned
-    await createNotification({
-      userId: application.applicantId,
-      type: "devices_assigned",
-      title: "Devices Assigned",
-      message: `${devices.length} device(s) have been assigned to your school. Please confirm receipt once you receive them.`,
-      metadata: { 
-        applicationId: application.id, 
-        deviceCount: devices.length,
-        devices: application.assignedDevices 
-      },
-      actionUrl: `/dashboard/applications`
-    });
+    try {
+      await createNotification({
+        userId: application.applicantId,
+        type: "devices_assigned",
+        title: "Devices Assigned",
+        message: `${devices.length} device(s) have been assigned to your school. Please confirm receipt once you receive them.`,
+        metadata: { 
+          applicationId: application.id, 
+          deviceCount: devices.length,
+          devices: application.assignedDevices 
+        },
+        actionUrl: `/dashboard/applications`
+      });
+    } catch (notifError) {
+      console.error("Failed to send notification:", notifError);
+    }
 
     res.status(200).json({
       message: "Devices assigned successfully",
@@ -618,16 +631,20 @@ export const confirmReceipt = async (req: AuthRequest, res: Response): Promise<v
     await applicationRepository.save(application);
 
     // Notify admin and staff that devices have been received
-    await notifyAdminAndStaff(
-      "devices_received",
-      "Devices Received Confirmation",
-      `School has confirmed receipt of devices for application #${application.id.substring(0, 8)}`,
-      { 
-        applicationId: application.id,
-        confirmedAt: application.confirmedAt 
-      },
-      `/dashboard/admin/applications`
-    );
+    try {
+      await notifyAdminAndStaff(
+        "devices_received",
+        "Devices Received Confirmation",
+        `School has confirmed receipt of devices for application #${application.id.substring(0, 8)}`,
+        { 
+          applicationId: application.id,
+          confirmedAt: application.confirmedAt 
+        },
+        `/dashboard/admin/applications`
+      );
+    } catch (notifError) {
+      console.error("Failed to send notification:", notifError);
+    }
 
     res.status(200).json({
       message: "Receipt confirmed successfully",
@@ -659,23 +676,8 @@ export const cancelApplication = async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    // Only applicant or school staff from same school can cancel
-    const user = await userRepository.findOne({
-      where: { id: userId },
-      relations: ["school"],
-    });
-
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    // Check if user has permission to cancel
-    const canCancel = 
-      application.applicant.id === userId || 
-      ((user as any).school && application.school.id === (user as any).school.id);
-
-    if (!canCancel) {
+    // Only applicant can cancel their own application
+    if (application.applicant.id !== userId) {
       res.status(403).json({ message: "Not authorized to cancel this application" });
       return;
     }
@@ -692,17 +694,21 @@ export const cancelApplication = async (req: AuthRequest, res: Response): Promis
     await applicationRepository.save(application);
 
     // Notify admin and staff about cancellation
-    await notifyAdminAndStaff(
-      "system_alert",
-      "Application Cancelled",
-      `${user.fullName} cancelled application #${application.id.substring(0, 8)} from ${application.school.schoolName}`,
-      { 
-        applicationId: application.id,
-        schoolCode: application.school.schoolCode,
-        cancelledBy: user.fullName
-      },
-      `/dashboard/admin/applications`
-    );
+    try {
+      await notifyAdminAndStaff(
+        "system_alert",
+        "Application Cancelled",
+        `${application.applicant.fullName} cancelled application #${application.id.substring(0, 8)} from ${application.school.schoolName}`,
+        { 
+          applicationId: application.id,
+          schoolCode: application.school.schoolCode,
+          cancelledBy: application.applicant.fullName
+        },
+        `/dashboard/admin/applications`
+      );
+    } catch (notifError) {
+      console.error("Failed to send notification:", notifError);
+    }
 
     res.status(200).json({
       message: "Application cancelled successfully",
@@ -733,23 +739,8 @@ export const deleteApplication = async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    // Only applicant or school staff from same school can delete
-    const user = await userRepository.findOne({
-      where: { id: userId },
-      relations: ["school"],
-    });
-
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    // Check if user has permission to delete
-    const canDelete = 
-      application.applicant.id === userId || 
-      ((user as any).school && application.school.id === (user as any).school.id);
-
-    if (!canDelete) {
+    // Only applicant can delete their own application
+    if (application.applicant.id !== userId) {
       res.status(403).json({ message: "Not authorized to delete this application" });
       return;
     }
