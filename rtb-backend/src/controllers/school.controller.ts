@@ -11,7 +11,7 @@ const schoolRepository = AppDataSource.getRepository(School);
 const userRepository = AppDataSource.getRepository(User);
 
 /**
- * Get all schools with pagination and filtering (Admin/Staff only)
+ * Get all schools with advanced pagination, filtering, and search (Admin/Staff only)
  */
 export const getSchools = async (req: Request, res: Response): Promise<Response> => {
   try {
@@ -22,20 +22,21 @@ export const getSchools = async (req: Request, res: Response): Promise<Response>
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const { search, category, province, district, status } = req.query;
-
-    // Build query conditions
-    const where: any = {};
-    
-    if (category) where.category = category;
-    if (province) where.province = province;
-    if (district) where.district = district;
-    if (status) where.status = status;
-
-    // If user is 'school' role, only show their assigned school(s)
-    if (currentUser?.role === 'school') {
-      where.representativeId = currentUser.id;
-    }
+    const { 
+      search, 
+      category, 
+      province, 
+      district, 
+      sector,
+      status, 
+      hasRepresentative,
+      sortBy,
+      sortOrder,
+      schoolName,
+      schoolCode,
+      email,
+      phoneNumber
+    } = req.query;
 
     let query = schoolRepository
       .createQueryBuilder('school')
@@ -49,30 +50,148 @@ export const getSchools = async (req: Request, res: Response): Promise<Response>
         'representative.role'
       ]);
 
-    // Apply filters
-    if (category) query = query.andWhere('school.category = :category', { category });
-    if (province) query = query.andWhere('school.province = :province', { province });
-    if (district) query = query.andWhere('school.district = :district', { district });
-    if (status) query = query.andWhere('school.status = :status', { status });
-
-    // School role restriction
+    // School role restriction - only show their assigned school(s)
     if (currentUser?.role === 'school') {
       query = query.andWhere('school.representativeId = :userId', { userId: currentUser.id });
     }
 
-    // Search functionality
+    // Category filter
+    if (category) {
+      query = query.andWhere('school.category = :category', { category });
+    }
+
+    // Province filter (case-insensitive)
+    if (province) {
+      query = query.andWhere('LOWER(school.province) = LOWER(:province)', { province });
+    }
+
+    // District filter (case-insensitive)
+    if (district) {
+      query = query.andWhere('LOWER(school.district) = LOWER(:district)', { district });
+    }
+
+    // Sector filter (case-insensitive)
+    if (sector) {
+      query = query.andWhere('LOWER(school.sector) = LOWER(:sector)', { sector });
+    }
+
+    // Status filter
+    if (status) {
+      query = query.andWhere('school.status = :status', { status });
+    }
+
+    // Has representative filter
+    if (hasRepresentative !== undefined) {
+      if (hasRepresentative === 'true' || hasRepresentative === '1') {
+        query = query.andWhere('school.representativeId IS NOT NULL');
+      } else if (hasRepresentative === 'false' || hasRepresentative === '0') {
+        query = query.andWhere('school.representativeId IS NULL');
+      }
+    }
+
+    // Specific field searches (exact match)
+    if (schoolName) {
+      query = query.andWhere('LOWER(school.schoolName) LIKE LOWER(:schoolName)', { 
+        schoolName: `%${schoolName}%` 
+      });
+    }
+
+    if (schoolCode) {
+      query = query.andWhere('LOWER(school.schoolCode) LIKE LOWER(:schoolCode)', { 
+        schoolCode: `%${schoolCode}%` 
+      });
+    }
+
+    if (email) {
+      query = query.andWhere('LOWER(school.email) LIKE LOWER(:email)', { 
+        email: `%${email}%` 
+      });
+    }
+
+    if (phoneNumber) {
+      query = query.andWhere('school.phoneNumber LIKE :phoneNumber', { 
+        phoneNumber: `%${phoneNumber}%` 
+      });
+    }
+
+    // Global search (searches across multiple fields)
     if (search) {
       query = query.andWhere(
-        '(school.schoolName LIKE :search OR school.schoolCode LIKE :search OR school.district LIKE :search)',
+        '(LOWER(school.schoolName) LIKE LOWER(:search) OR ' +
+        'LOWER(school.schoolCode) LIKE LOWER(:search) OR ' +
+        'LOWER(school.district) LIKE LOWER(:search) OR ' +
+        'LOWER(school.province) LIKE LOWER(:search) OR ' +
+        'LOWER(school.sector) LIKE LOWER(:search) OR ' +
+        'LOWER(school.email) LIKE LOWER(:search) OR ' +
+        'school.phoneNumber LIKE :search OR ' +
+        'LOWER(representative.fullName) LIKE LOWER(:search) OR ' +
+        'LOWER(representative.email) LIKE LOWER(:search))',
         { search: `%${search}%` }
       );
+    }
+
+    // Sorting
+    const validSortFields = ['schoolName', 'schoolCode', 'category', 'province', 'district', 'status', 'createdAt', 'updatedAt'];
+    const sortField = sortBy && validSortFields.includes(sortBy as string) ? sortBy as string : 'createdAt';
+    const sortDirection = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    query = query.orderBy(`school.${sortField}`, sortDirection);
+
+    // Add secondary sort by schoolName for consistent ordering
+    if (sortField !== 'schoolName') {
+      query = query.addOrderBy('school.schoolName', 'ASC');
     }
 
     const [schools, total] = await query
       .skip(skip)
       .take(limit)
-      .orderBy('school.createdAt', 'DESC')
       .getManyAndCount();
+
+    // Get filter statistics for UI
+    const stats = {
+      totalSchools: total,
+      byCategory: {} as Record<string, number>,
+      byStatus: {} as Record<string, number>,
+      byProvince: {} as Record<string, number>,
+    };
+
+    if (total > 0) {
+      // Get category counts
+      const categoryStats = await schoolRepository
+        .createQueryBuilder('school')
+        .select('school.category', 'category')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('school.category')
+        .getRawMany();
+      
+      categoryStats.forEach((stat: any) => {
+        stats.byCategory[stat.category] = parseInt(stat.count);
+      });
+
+      // Get status counts
+      const statusStats = await schoolRepository
+        .createQueryBuilder('school')
+        .select('school.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('school.status')
+        .getRawMany();
+      
+      statusStats.forEach((stat: any) => {
+        stats.byStatus[stat.status] = parseInt(stat.count);
+      });
+
+      // Get province counts
+      const provinceStats = await schoolRepository
+        .createQueryBuilder('school')
+        .select('school.province', 'province')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('school.province')
+        .getRawMany();
+      
+      provinceStats.forEach((stat: any) => {
+        stats.byProvince[stat.province] = parseInt(stat.count);
+      });
+    }
 
     return res.json({
       success: true,
@@ -82,7 +201,19 @@ export const getSchools = async (req: Request, res: Response): Promise<Response>
         limit,
         total,
         totalPages: Math.ceil(total / limit)
-      }
+      },
+      filters: {
+        search,
+        category,
+        province,
+        district,
+        sector,
+        status,
+        hasRepresentative,
+        sortBy: sortField,
+        sortOrder: sortDirection
+      },
+      stats
     });
   } catch (error) {
     console.error('Get schools error:', error);
