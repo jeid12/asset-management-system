@@ -133,7 +133,7 @@ export const getSchools = async (req: Request, res: Response): Promise<Response>
     // Sorting
     const validSortFields = ['schoolName', 'schoolCode', 'category', 'province', 'district', 'status', 'createdAt', 'updatedAt'];
     const sortField = sortBy && validSortFields.includes(sortBy as string) ? sortBy as string : 'createdAt';
-    const sortDirection = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const sortDirection = (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
     query = query.orderBy(`school.${sortField}`, sortDirection);
 
